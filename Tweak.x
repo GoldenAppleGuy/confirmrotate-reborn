@@ -6,8 +6,9 @@
 // appears, turned to match the new physical orientation; tapping it moves the hold there and asks
 // the pipeline to run again, which rotates the screen.
 //
-// The button: tap to rotate; long press to rotate and add the app to the blacklist; swipe to dismiss;
-// optionally it rotates by itself after a delay (a ring fills around it as it counts down).
+// The button: tap to rotate; long press to rotate and add the app to the blacklist; swipe to dismiss.
+// With auto-rotate on, it rotates by itself after a delay (a ring fills around it as it counts down),
+// and reads "Cancel?" instead: a tap keeps the screen as it is.
 //
 // The Control Center lock still wins: while it is on, nothing is held and no button shows.
 // Settings: TweakSettings > ConfirmRotate Reborn (domain com.goldenappleguy.confirmrotatereborn; settings from
@@ -461,6 +462,13 @@ static void CRConfirmAndBlacklist(void) {
 }
 
 - (void)tapped:(UITapGestureRecognizer *)gesture {
+    if (gAutoRotateAfter > 0) { // the button reads "Cancel?": keep the screen as it is
+        if (!gShown) return;
+        CRLog(@"cancelled");
+        [[[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleLight] impactOccurred];
+        CRHide(YES);
+        return;
+    }
     CRConfirm();
 }
 
@@ -528,14 +536,16 @@ static UIView *CRMakeButton(void) {
     blur.userInteractionEnabled = NO;
     [button addSubview:blur];
 
-    // Control Center's rotation lock symbol over a "Rotate?" caption, both scaled with the button
+    // Control Center's rotation lock symbol over a "Rotate?" caption ("Cancel?" with auto-rotate on),
+    // both scaled with the button
     UIImageSymbolConfiguration *config = [UIImageSymbolConfiguration configurationWithPointSize:round(gButtonSize * 0.34) weight:UIImageSymbolWeightSemibold];
     UIImageView *icon = [[UIImageView alloc] initWithImage:[UIImage systemImageNamed:@"lock.rotation" withConfiguration:config]];
     icon.tintColor = accent;
     [icon sizeToFit];
 
     UILabel *caption = [UILabel new];
-    caption.text = @"Rotate?";
+    BOOL autoRotate = gAutoRotateAfter > 0;
+    caption.text = autoRotate ? @"Cancel?" : @"Rotate?";
     caption.font = [UIFont systemFontOfSize:MAX(9.0, round(gButtonSize * 0.16)) weight:UIFontWeightSemibold];
     caption.textColor = accent;
     caption.adjustsFontSizeToFitWidth = YES;
@@ -561,7 +571,7 @@ static UIView *CRMakeButton(void) {
     [button addGestureRecognizer:longPress];
     [button addGestureRecognizer:[[UIPanGestureRecognizer alloc] initWithTarget:gGestures action:@selector(panned:)]];
 
-    button.accessibilityLabel = @"Rotate screen";
+    button.accessibilityLabel = autoRotate ? @"Cancel rotation" : @"Rotate screen";
     button.isAccessibilityElement = YES;
     button.accessibilityTraits = UIAccessibilityTraitButton;
     return button;
