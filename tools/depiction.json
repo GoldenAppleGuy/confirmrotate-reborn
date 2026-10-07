@@ -1,0 +1,59 @@
+{
+  "minVersion": "0.1",
+  "class": "DepictionTabView",
+  "tintColor": "#007AFF",
+  "tabs": [
+    {
+      "tabname": "Details",
+      "class": "DepictionStackView",
+      "views": [
+        {
+          "class": "DepictionMarkdownView",
+          "markdown": "Asks before the screen rotates. Turn the phone and a button appears, upright for the way you are now holding it; tap it and the screen rotates.\n\n- **Only when it can rotate**: no button for apps that don't support the new orientation, or on the home and lock screens.\n- **Auto-rotate** (optional): the screen rotates by itself after a delay while a ring fills around the button; with Tap to Cancel, a tap keeps the screen as it is.\n- **Gestures**: long press the button to rotate and blacklist the app; swipe it away to dismiss it.\n- **Portrait on app switch** (optional): apps open in portrait.\n- **Whitelist, blacklist and Always Show In** app lists.\n- **Appearance**: circle or rounded square, icon color, size, opacity, position and hide delay.\n- **Control Center toggle** (needs CCSupport).\n- Translated into 13 languages.\n\nThe system rotation lock still wins: while it is on, nothing changes."
+        },
+        {
+          "class": "DepictionSeparatorView"
+        },
+        {
+          "class": "DepictionHeaderView",
+          "title": "Information"
+        },
+        {
+          "class": "DepictionTableTextView",
+          "title": "Version",
+          "text": "%VERSION%"
+        },
+        {
+          "class": "DepictionTableTextView",
+          "title": "Compatibility",
+          "text": "iOS 15 – 17 (rootless and rootful)"
+        },
+        {
+          "class": "DepictionTableTextView",
+          "title": "Developer",
+          "text": "GoldenAppleGuy"
+        },
+        {
+          "class": "DepictionTableButtonView",
+          "title": "Source Code",
+          "action": "https://github.com/GoldenAppleGuy/confirmrotate-reborn"
+        }
+      ]
+    },
+    {
+      "tabname": "Changelog",
+      "class": "DepictionStackView",
+      "views": [
+        {
+          "class": "DepictionSubheaderView",
+          "title": "1.0.0",
+          "useBoldText": true
+        },
+        {
+          "class": "DepictionMarkdownView",
+          "markdown": "Initial release."
+        }
+      ]
+    }
+  ]
+}

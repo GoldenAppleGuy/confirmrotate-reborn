@@ -33,6 +33,10 @@ Needs [Theos](https://theos.dev). `./build.sh` builds both packages into `packag
 
 Or one at a time: `make package` (rootless) or `make package THEOS_PACKAGE_SCHEME=` (rootful).
 
+## Publishing
+
+Released through the [GoldenAppleGuy repo](https://goldenappleguy.github.io/repo/) ([GoldenAppleGuy/repo](https://github.com/GoldenAppleGuy/repo)). To publish a new version: raise `Version` in `control` (and add it to the changelog in `tools/depiction.json`), run `./build.sh`, then `python3 tools/update_repo.py <checkout of GoldenAppleGuy/repo>`, and commit and push that checkout.
+
 ## Layout
 
 | Path | What |
@@ -42,6 +46,7 @@ Or one at a time: `make package` (rootless) or `make package THEOS_PACKAGE_SCHEM
 | `ccmodule/` | Control Center toggle (CCSupport bundle) |
 | `prefs/Localization/generate.py` | Translations: writes each language's `Root.strings` (settings) and `Tweak.strings` (button); run after changing any text |
 | `layout/` | PreferenceLoader entry |
+| `tools/update_repo.py`, `tools/depiction.json` | Publishing to the package repo, and its Sileo package page |
 
 ## How it works
 
