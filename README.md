@@ -35,7 +35,14 @@ Or one at a time: `make package` (rootless) or `make package THEOS_PACKAGE_SCHEM
 
 ## Publishing
 
-Released through the [GoldenAppleGuy repo](https://goldenappleguy.github.io/repo/) ([GoldenAppleGuy/repo](https://github.com/GoldenAppleGuy/repo)). To publish a new version: raise `Version` in `control` (and add it to the changelog in `tools/depiction.json`), run `./build.sh`, then `python3 tools/update_repo.py <checkout of GoldenAppleGuy/repo>`, and commit and push that checkout.
+Released through the [GoldenAppleGuy repo](https://goldenappleguy.github.io/repo/) ([GoldenAppleGuy/repo](https://github.com/GoldenAppleGuy/repo)). To publish a new version:
+
+1. Raise `Version` in `control` and add it to the changelog in `tools/depiction.json`; commit.
+2. `./build.sh` (both packages into `packages/`).
+3. `python3 tools/update_repo.py <checkout of GoldenAppleGuy/repo>`, then commit and push that checkout.
+4. Tag and release here with the packages attached: `git tag -a vX.Y.Z -m "ConfirmRotate Reborn X.Y.Z" && git push origin vX.Y.Z`, then `gh release create vX.Y.Z --verify-tag --title "ConfirmRotate Reborn X.Y.Z" --notes "..." packages/*.deb`.
+
+Every version is on the [releases page](https://github.com/GoldenAppleGuy/confirmrotate-reborn/releases) with both packages.
 
 ## Layout
 
