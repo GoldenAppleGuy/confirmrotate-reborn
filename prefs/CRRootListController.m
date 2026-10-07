@@ -25,19 +25,72 @@
 
 @end
 
-// Slider row whose value reads as a whole number (plus an optional "valueSuffix" from the specifier)
-// at all times, and can be typed in with a long press. The stock value label prints decimals and
-// redraws them on every change, so it is kept for layout but hidden, and a label styled like it sits
-// in its place.
+// Slider row whose value reads as a whole number (plus an optional "valueSuffix", or "zeroText" for 0,
+// from the specifier) at all times, and can be typed in with a long press. The slider's own value label
+// sits inside the slider and is sized and laid out by it, so instead of covering it, that label's class
+// is swapped for one that formats whatever text the slider sets (it prints decimals, on every change).
 #import <Preferences/PSSliderTableCell.h>
 #import <Preferences/PSSpecifier.h>
+#import <objc/runtime.h>
+#import <objc/message.h>
+
+static char kCRFormatKey;   // label: block formatting a value
+static char kCRWidthKey;    // label: width reserved for the value (widest text, larger font)
+static char kCRReserveKey;  // slider: space kept free of the track (and knob) at the trailing end
+#define CR_VALUE_FONT_SIZE 16.0
+
+@interface CRValueLabel : UILabel // no ivars: installed on an existing label with object_setClass
+@end
+
+@implementation CRValueLabel
+// Wherever the slider puts this label, it goes at the trailing end in the space kept free of the track,
+// sized for the widest value and centered vertically
+- (void)setFrame:(CGRect)frame {
+    NSNumber *width = objc_getAssociatedObject(self, &kCRWidthKey);
+    if (width && self.superview) {
+        CGFloat w = width.doubleValue, h = ceil(self.font.lineHeight) + 2, H = self.superview.bounds.size.height;
+        frame = CGRectMake(self.superview.bounds.size.width - w, round((H - h) / 2), w, h);
+    }
+    [super setFrame:frame];
+}
+
+- (void)setText:(NSString *)text {
+    NSString *(^format)(double) = objc_getAssociatedObject(self, &kCRFormatKey);
+    NSScanner *scanner = [NSScanner scannerWithString:text ?: @""];
+    double value;
+    if (format && [scanner scanDouble:&value]) text = format(value);
+    [super setText:text];
+}
+@end
+
+// A subclass of the slider's own class, made at runtime, whose track (and so the knob) stops short of the
+// trailing end by the reserved amount
+static Class CRPaddedSliderClass(Class base) {
+    NSString *name = [@"CRPadded_" stringByAppendingString:NSStringFromClass(base)];
+    Class cls = NSClassFromString(name);
+    if (cls) return cls;
+    cls = objc_allocateClassPair(base, name.UTF8String, 0);
+    if (!cls) return base;
+    SEL sel = @selector(trackRectForBounds:);
+    IMP imp = imp_implementationWithBlock(^CGRect(UISlider *slider, CGRect bounds) {
+        struct objc_super sup = {slider, base};
+        CGRect rect = ((CGRect (*)(struct objc_super *, SEL, CGRect))objc_msgSendSuper)(&sup, sel, bounds);
+        NSNumber *reserve = objc_getAssociatedObject(slider, &kCRReserveKey);
+        if (reserve) {
+            CGFloat maxX = bounds.size.width - reserve.doubleValue;
+            if (CGRectGetMaxX(rect) > maxX) rect.size.width = MAX(0, maxX - rect.origin.x);
+        }
+        return rect;
+    });
+    class_addMethod(cls, sel, imp, method_getTypeEncoding(class_getInstanceMethod(base, sel)));
+    objc_registerClassPair(cls);
+    return cls;
+}
 
 @interface CRIntegerSliderCell : PSSliderTableCell
 @end
 
-@implementation CRIntegerSliderCell {
-    UILabel *_valueLabel;
-}
+@implementation CRIntegerSliderCell
 
 - (UISlider *)slider {
     return [self.control isKindOfClass:[UISlider class]] ? (UISlider *)self.control : nil;
@@ -50,75 +103,64 @@
     return [NSString stringWithFormat:@"%.0f%@", round(value), suffix];
 }
 
-- (void)updateValueLabel {
-    _valueLabel.text = [self textForValue:[self slider].value];
-}
-
-// The stock value label: a label in the row showing a number, other than ours
-- (UILabel *)stockValueLabelIn:(UIView *)view {
+// The slider's value label: a label inside the slider showing a number
+- (UILabel *)valueLabelIn:(UIView *)view {
     for (UIView *subview in view.subviews) {
-        if ([subview isKindOfClass:[UILabel class]] && subview != _valueLabel) {
+        if ([subview isKindOfClass:[UILabel class]]) {
             NSScanner *scanner = [NSScanner scannerWithString:((UILabel *)subview).text ?: @""];
             double number;
-            if ([scanner scanDouble:&number]) return (UILabel *)subview;
+            if ([subview isKindOfClass:[CRValueLabel class]] || [scanner scanDouble:&number]) return (UILabel *)subview;
         }
-        UILabel *found = [self stockValueLabelIn:subview];
+        UILabel *found = [self valueLabelIn:subview];
         if (found) return found;
     }
     return nil;
 }
 
-- (void)refreshCellContentsWithSpecifier:(PSSpecifier *)specifier {
-    [super refreshCellContentsWithSpecifier:specifier];
-    UISlider *slider = [self slider];
-    if (!_valueLabel && slider) {
-        _valueLabel = [UILabel new];
-        _valueLabel.userInteractionEnabled = YES;
-        [_valueLabel addGestureRecognizer:[[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(valueLabelLongPressed:)]];
-        // Dragging moves the value continuously, but this slider only reports a change on release
-        [slider addTarget:self action:@selector(sliderMoved) forControlEvents:UIControlEventValueChanged | UIControlEventTouchDragInside | UIControlEventTouchDragOutside | UIControlEventTouchDown];
+- (void)installValueFormatting {
+    UILabel *label = [self valueLabelIn:[self slider]];
+    if (!label) return;
+    __weak typeof(self) weakSelf = self;
+    objc_setAssociatedObject(label, &kCRFormatKey, ^NSString *(double value) {
+        return [weakSelf textForValue:value] ?: [NSString stringWithFormat:@"%.0f", value];
+    }, OBJC_ASSOCIATION_COPY_NONATOMIC);
+    if (![label isKindOfClass:[CRValueLabel class]]) {
+        object_setClass(label, [CRValueLabel class]);
+        label.userInteractionEnabled = YES;
+        [label addGestureRecognizer:[[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(valueLabelLongPressed:)]];
     }
-    [self updateValueLabel];
-    [self setNeedsLayout];
+    // Larger than the slider's own size; room for the widest value is taken from the end of the track
+    UISlider *slider = [self slider];
+    label.font = [label.font fontWithSize:CR_VALUE_FONT_SIZE];
+    label.textAlignment = NSTextAlignmentRight;
+    label.adjustsFontSizeToFitWidth = YES;
+    label.minimumScaleFactor = 0.8;
+    CGFloat width = 0;
+    for (NSString *key in @[@"min", @"max"]) {
+        NSString *text = [self textForValue:[[self.specifier propertyForKey:key] floatValue]];
+        width = MAX(width, ceil([text sizeWithAttributes:@{NSFontAttributeName: label.font}].width) + 2);
+    }
+    objc_setAssociatedObject(label, &kCRWidthKey, @(width), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    CGFloat knobOverhang = 8, gap = 8; // the knob reaches past the end of the track
+    NSNumber *reserve = @(width + gap + knobOverhang);
+    if (![objc_getAssociatedObject(slider, &kCRReserveKey) isEqual:reserve]) {
+        objc_setAssociatedObject(slider, &kCRReserveKey, reserve, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        if (![NSStringFromClass([slider class]) hasPrefix:@"CRPadded_"]) object_setClass(slider, CRPaddedSliderClass([slider class]));
+        [label.superview setNeedsLayout];
+        [slider setNeedsLayout];
+    }
+    label.frame = label.frame; // place it in the reserved space
+    label.text = label.text;   // reformat what is showing now
 }
 
-- (void)sliderMoved {
-    [self updateValueLabel];
-    [self setNeedsLayout]; // the stock label may have been redrawn (and shown) again
+- (void)refreshCellContentsWithSpecifier:(PSSpecifier *)specifier {
+    [super refreshCellContentsWithSpecifier:specifier];
+    [self installValueFormatting];
 }
 
 - (void)layoutSubviews {
     [super layoutSubviews];
-    UILabel *stock = [self stockValueLabelIn:self];
-    if (!stock || !_valueLabel) return;
-    if (_valueLabel.superview != stock.superview) [stock.superview addSubview:_valueLabel];
-    _valueLabel.font = stock.font;
-    _valueLabel.textColor = stock.textColor;
-    _valueLabel.textAlignment = NSTextAlignmentRight;
-    stock.alpha = 0;
-
-    // Same place as the stock label, widened to the left for the widest value with its suffix (the
-    // stock label is sized for the bare number); the slider gives up the extra space.
-    CGFloat needed = 0;
-    for (NSString *key in @[@"min", @"max"]) {
-        NSString *text = [self textForValue:[[self.specifier propertyForKey:key] floatValue]];
-        needed = MAX(needed, ceil([text sizeWithAttributes:@{NSFontAttributeName: stock.font}].width) + 4);
-    }
-    CGRect frame = stock.frame;
-    CGFloat extra = MAX(0, needed - frame.size.width);
-    frame.origin.x -= extra;
-    frame.size.width += extra;
-    _valueLabel.frame = frame;
-
-    UISlider *slider = [self slider];
-    CGRect labelInSlider = [_valueLabel.superview convertRect:frame toView:slider.superview];
-    CGRect sliderFrame = slider.frame;
-    CGFloat overlap = CGRectGetMaxX(sliderFrame) + 14 - CGRectGetMinX(labelInSlider); // the knob draws past the frame
-    if (overlap > 0) {
-        sliderFrame.size.width -= overlap;
-        slider.frame = sliderFrame;
-    }
-    [self updateValueLabel];
+    [self installValueFormatting]; // the slider may create its label lazily
 }
 
 - (void)valueLabelLongPressed:(UILongPressGestureRecognizer *)gesture {
@@ -147,7 +189,6 @@
         float value = MAX(min, MIN(max, (float)round(text.doubleValue)));
         [slider setValue:value animated:YES];
         [weakSelf controlChanged:slider]; // saves through the specifier, as dragging does
-        [weakSelf updateValueLabel];
     }]];
     [presenter presentViewController:alert animated:YES completion:nil];
 }
