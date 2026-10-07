@@ -46,6 +46,15 @@
       "views": [
         {
           "class": "DepictionSubheaderView",
+          "title": "1.0.1",
+          "useBoldText": true
+        },
+        {
+          "class": "DepictionMarkdownView",
+          "markdown": "Fixed: in apps that rotate themselves (such as YouTube), the rotate button did nothing after the app had gone back to portrait on its own."
+        },
+        {
+          "class": "DepictionSubheaderView",
           "title": "1.0.0",
           "useBoldText": true
         },

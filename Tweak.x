@@ -158,6 +158,7 @@ static BOOL gHolding;
 static UIDeviceOrientation gRawDevice; // physical orientation, as the traits pipeline receives it before the lock
 static __weak SBTraitsPipelineManager *gPipelineManager; // iOS 17 traits pipeline that decides orientation
 static UIInterfaceOrientation gHeld;
+static CFAbsoluteTime gHeldAt;   // when the hold last moved
 static BOOL gLegacy;   // iOS 15 path (no traits pipeline): holds by filtering -[SpringBoard _deviceOrientationChanged:]
 static BOOL gPassing;  // iOS 15 path: our own call into _deviceOrientationChanged:, let it through
 
@@ -322,7 +323,20 @@ static void CRHold(UIInterfaceOrientation orientation) {
     if (gHolding && gHeld == orientation) return;
     gHolding = YES;
     gHeld = orientation;
+    gHeldAt = CFAbsoluteTimeGetCurrent();
     CRLog(@"hold %ld", (long)orientation);
+    CRRequestArbitration();
+}
+
+// An app can turn the screen by itself (YouTube leaving fullscreen goes back to portrait while the hold
+// is still landscape). The hold then follows what the screen shows, so the next confirm is a real change
+// the app sees. Not within 1.5 s of the hold moving: the screen may still be rotating to it.
+static void CRSyncHoldToScreen(void) {
+    UIInterfaceOrientation active = CRActiveOrientation();
+    if (!gHolding || active == gHeld || CFAbsoluteTimeGetCurrent() - gHeldAt < 1.5) return;
+    CRLog(@"screen turned by the app (%ld, held %ld): holding %ld", (long)active, (long)gHeld, (long)active);
+    gHeld = active;
+    gHeldAt = CFAbsoluteTimeGetCurrent();
     CRRequestArbitration();
 }
 
@@ -458,6 +472,15 @@ static void CRConfirm(void) {
     CRHaptic(UIImpactFeedbackStyleMedium);
     UIInterfaceOrientation target = gTarget;
     CRHide(YES);
+    if (gHolding && gHeld == target && CRActiveOrientation() != target) {
+        // Already holding the target, but the app turned the screen away from it by itself: hold what the
+        // screen shows first, then the target, so the app sees the phone turn again
+        CRLog(@"re-holding %ld before %ld", (long)CRActiveOrientation(), (long)target);
+        gHeld = CRActiveOrientation();
+        CRRequestArbitration();
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.25 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{ CRHold(target); });
+        return;
+    }
     CRHold(target);
 }
 
@@ -786,6 +809,7 @@ static NSString *CRCurrentFrontBundle(void) {
         return;
     }
     if (!gHolding) CRHold(CRActiveOrientation());
+    CRSyncHoldToScreen();
     UIDeviceOrientation device = gRawDevice;
     UIInterfaceOrientation target;
     if (!CRInterfaceOrientationFor(device, &target)) return; // flat or unknown: leave things as they are

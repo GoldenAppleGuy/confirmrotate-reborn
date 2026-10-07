@@ -1,6 +1,6 @@
 Package: com.goldenappleguy.confirmrotatereborn
 Name: ConfirmRotate Reborn
-Version: 1.0.0
+Version: 1.0.1
 Description: Asks before the screen rotates. A button appears, turned to the new orientation; tap it to rotate. A modern take on ConfirmRotate for iOS 15 to 17.
 Maintainer: GoldenAppleGuy
 Author: GoldenAppleGuy
