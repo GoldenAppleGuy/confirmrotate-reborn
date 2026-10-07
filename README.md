@@ -1,6 +1,6 @@
 # ConfirmRotate Reborn
 
-Asks before the screen rotates. Turn the phone and a button appears, upright for the way you are now holding it; tap it and the screen rotates. A modern take on the old ConfirmRotate tweak, rebuilt for iOS 17.
+Asks before the screen rotates. Turn the phone and a button appears, upright for the way you are now holding it; tap it and the screen rotates. A modern take on the old ConfirmRotate tweak, rebuilt for iOS 15 to 17.
 
 ## Features
 
@@ -18,11 +18,11 @@ Asks before the screen rotates. Turn the phone and a button appears, upright for
 
 ## Requirements
 
-- iOS 17, jailbroken (rootless or rootful). Tested on iOS 17.0 (iPhone 15, Dopamine).
+- iOS 15 to 17, jailbroken (rootless or rootful). Tested on iOS 17.0 (iPhone 15, Dopamine) and iOS 15.4.1 (iPhone 12 mini, Dopamine). iOS 16 is untested.
 - PreferenceLoader and AltList. CCSupport for the Control Center toggle.
 - roothide: use the rootless package with roothide's patcher.
 
-The tweak hooks the traits pipeline that iOS 17 uses to decide orientation, so it does nothing on earlier versions; the package requires iOS 17.
+The tweak picks its hooks at startup: iOS 17's traits pipeline, or the older path that iOS 15 uses (see How it works).
 
 ## Building
 
@@ -46,6 +46,8 @@ Or one at a time: `make package` (rootless) or `make package THEOS_PACKAGE_SCHEM
 ## How it works
 
 On iOS 17, SpringBoard decides orientation in its traits pipeline, which reads the device orientation from `-[SBTraitsEmbeddedDisplayPipelineManager inputs]`. The tweak replaces that orientation with a held one, so turning the phone changes nothing. Confirming moves the hold to the new orientation and asks the pipeline to run again (`_noteInputsNeedUpdateAnimated:reason:`). The physical orientation is read from the same inputs, since `UIDevice` in SpringBoard follows the held orientation. App switches are handled in `layoutStateTransitionCoordinator:transitionDidBeginWithTransitionContext:`, before the new app is laid out.
+
+iOS 15 has no such pipeline: every orientation change reaches SpringBoard through `-[SpringBoard _deviceOrientationChanged:]`. While holding, the tweak lets only the held orientation through it, and confirming passes the new orientation through it. Physical orientation changes still arrive there while holding (the system's own lock overrides stop them, so those can't be used). App switches come from `-[SBLayoutStateTransitionCoordinator beginTransitionForWorkspaceTransaction:]`. On iOS 15, switching back to an app can occasionally be slow to accept touches for about a second with the tweak enabled; it was left as it is.
 
 ## Debugging
 

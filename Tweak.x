@@ -1,10 +1,14 @@
-// ConfirmRotate Reborn - asks before the screen rotates (a modern take on ConfirmRotate for iOS 17).
+// ConfirmRotate Reborn - asks before the screen rotates (a modern take on ConfirmRotate, iOS 15 to 17).
 //
-// How it works (iOS 17): orientation is decided by SpringBoard's traits pipeline, which reads the
-// device orientation from SBTraitsEmbeddedDisplayPipelineManager -inputs. The tweak replaces that
-// orientation with a held one, so the screen stays put when the phone is turned. A button then
-// appears, turned to match the new physical orientation; tapping it moves the hold there and asks
-// the pipeline to run again, which rotates the screen.
+// The tweak holds the screen in its current orientation, so it stays put when the phone is turned. A
+// button then appears, turned to match the new physical orientation; tapping it moves the hold there,
+// which rotates the screen. How the hold works depends on the iOS version:
+// - iOS 17: orientation is decided by SpringBoard's traits pipeline, which reads the device orientation
+//   from SBTraitsEmbeddedDisplayPipelineManager -inputs. The tweak replaces that orientation with the held
+//   one, and asks the pipeline to run again when the hold moves.
+// - iOS 15 (the older path, without that pipeline): every orientation change reaches SpringBoard through
+//   -[SpringBoard _deviceOrientationChanged:]. While holding, only the held orientation is let through;
+//   moving the hold passes the new orientation through it.
 //
 // The button: tap to rotate; long press to rotate and add the app to the blacklist; swipe to dismiss.
 // With auto-rotate on, it rotates by itself after a delay (a ring fills around it as it counts down);
@@ -97,6 +101,12 @@
 
 @interface SpringBoard : UIApplication
 - (UIInterfaceOrientation)activeInterfaceOrientation;
+- (void)_deviceOrientationChanged:(long long)orientation;       // iOS 15 path
+- (long long)rawDeviceOrientationIgnoringOrientationLocks;
+@end
+
+@interface SBLayoutStateTransitionCoordinator : NSObject
+- (SBLayoutStateTransitionContext *)transitionContext;
 @end
 
 @interface CRWindow : UIWindow
@@ -150,6 +160,8 @@ static BOOL gHolding;
 static UIDeviceOrientation gRawDevice; // physical orientation, as the traits pipeline receives it before the lock
 static __weak SBTraitsPipelineManager *gPipelineManager; // iOS 17 traits pipeline that decides orientation
 static UIInterfaceOrientation gHeld;
+static BOOL gLegacy;   // iOS 15 path (no traits pipeline): holds by filtering -[SpringBoard _deviceOrientationChanged:]
+static BOOL gPassing;  // iOS 15 path: our own call into _deviceOrientationChanged:, let it through
 
 // Settings
 static BOOL gEnabled = YES;
@@ -303,8 +315,19 @@ static UIInterfaceOrientation CRActiveOrientation(void) {
     return UIInterfaceOrientationPortrait;
 }
 
-// Makes the traits pipeline run again, so a changed hold takes effect without the phone moving.
+// Makes a changed hold take effect without the phone moving: iOS 17 runs the traits pipeline again;
+// the iOS 15 path passes the orientation SpringBoard should now have (the held one, or the physical
+// one when not holding) through _deviceOrientationChanged:.
 static void CRRequestArbitration(void) {
+    if (gLegacy) {
+        long long orientation = (gHolding && !gExcluded) ? gHeld : gRawDevice;
+        SpringBoard *springBoard = (SpringBoard *)[UIApplication sharedApplication];
+        if (orientation <= 0 || ![springBoard respondsToSelector:@selector(_deviceOrientationChanged:)]) return;
+        gPassing = YES;
+        [springBoard _deviceOrientationChanged:orientation];
+        gPassing = NO;
+        return;
+    }
     if ([gPipelineManager respondsToSelector:@selector(_noteInputsNeedUpdateAnimated:reason:)]) {
         [(SBTraitsEmbeddedDisplayPipelineManager *)gPipelineManager _noteInputsNeedUpdateAnimated:YES reason:@"ConfirmRotateReborn"];
         return;
@@ -315,8 +338,8 @@ static void CRRequestArbitration(void) {
     [arbiter updateArbitrationIfNeeded];
 }
 
-// Pins the interface to an orientation; moving the pin rotates the screen there. Applied where the
-// traits pipeline reads its inputs (SBTraitsEmbeddedDisplayPipelineManager -inputs hook below).
+// Pins the interface to an orientation; moving the pin rotates the screen there. Applied in the
+// -inputs hook (iOS 17) or the _deviceOrientationChanged: hook (iOS 15) below.
 static void CRHold(UIInterfaceOrientation orientation) {
     if (gHolding && gHeld == orientation) return;
     gHolding = YES;
@@ -740,13 +763,14 @@ static NSString *CRCurrentFrontBundle(void) {
 }
 
 - (void)start {
+    if (gLegacy) gRawDevice = (UIDeviceOrientation)[(SpringBoard *)[UIApplication sharedApplication] rawDeviceOrientationIgnoringOrientationLocks];
     CRMigrateOldPrefs();
     CRLoadPrefs();
     CRSetFrontBundle(CRCurrentFrontBundle());
     CRLogPrefs();
     if (CREnabled() && ![CRLockManager() isUserLocked]) CRHold(CRActiveOrientation());
     gStarted = YES;
-    CRLog(@"started (locked=%d, orientation=%ld)", [CRLockManager() isUserLocked], (long)gRawDevice);
+    CRLog(@"started (%@ path, locked=%d, orientation=%ld)", gLegacy ? @"iOS 15" : @"iOS 17", [CRLockManager() isUserLocked], (long)gRawDevice);
 }
 
 - (void)prefsChanged {
@@ -800,6 +824,7 @@ static NSString *CRCurrentFrontBundle(void) {
 }
 @end
 
+%group Common
 %hook SBOrientationLockManager
 // Turning the user lock off: pin the current orientation first so the screen does not rotate
 // to the physical orientation by itself.
@@ -815,6 +840,7 @@ static NSString *CRCurrentFrontBundle(void) {
     CRHide(NO);
 }
 %end
+%end
 
 // The primary app scene of a layout state ("" for the home screen)
 static NSString *CRPrimaryScene(SBLayoutState *state) {
@@ -826,6 +852,36 @@ static NSString *CRPrimaryScene(SBLayoutState *state) {
     return @"";
 }
 
+// A layout transition is starting (an app opening, the app switcher, going home). Handled before the
+// new app is laid out, so it appears in the right orientation from the start:
+// - an app the whitelist / blacklist excludes: stop holding, so it follows the phone
+// - Portrait on App Switch: hold portrait
+// - back from an excluded app: hold whatever orientation it was left in
+static void CRLayoutTransitionBegan(SBLayoutStateTransitionContext *context) {
+    if (![context respondsToSelector:@selector(fromLayoutState)] || ![context respondsToSelector:@selector(toLayoutState)]) return;
+    NSString *from = CRPrimaryScene([context fromLayoutState]), *to = CRPrimaryScene([context toLayoutState]);
+    if ([from isEqualToString:to]) return;
+    BOOL exclusionChanged = CRSetFrontBundle(CRBundleForScene(to));
+    BOOL active = gStarted && CREnabled() && ![CRLockManager() isUserLocked];
+    if (gExcluded) {
+        CRLog(@"app switch to %@: excluded", gFrontBundle);
+        CRHide(NO);
+        if (exclusionChanged) CRRequestArbitration();
+    } else if (active && gPortraitOnAppSwitch) {
+        CRLog(@"app switch to %@: portrait", gFrontBundle.length ? gFrontBundle : @"home screen");
+        CRHide(NO);
+        CRHold(UIInterfaceOrientationPortrait);
+        if (exclusionChanged) CRRequestArbitration();
+    } else if (active && exclusionChanged) {
+        CRLog(@"app switch to %@: hold current", gFrontBundle.length ? gFrontBundle : @"home screen");
+        gHeld = CRActiveOrientation();
+        gHolding = YES;
+        CRRequestArbitration();
+    }
+}
+
+// iOS 17: the traits pipeline
+%group Modern
 %hook SBTraitsPipelineManager
 - (id)initWithArbiter:(id)arbiter sceneDelegate:(id)delegate {
     id result = %orig;
@@ -835,34 +891,8 @@ static NSString *CRPrimaryScene(SBLayoutState *state) {
 %end
 
 %hook SBTraitsEmbeddedDisplayPipelineManager
-// A layout transition is starting (an app opening, the app switcher, going home). Handled here,
-// before the pipeline lays out the new app, so it appears in the right orientation from the start:
-// - an app the whitelist / blacklist excludes: stop holding, so it follows the phone
-// - Portrait on App Switch: hold portrait
-// - back from an excluded app: hold whatever orientation it was left in
 - (void)layoutStateTransitionCoordinator:(id)coordinator transitionDidBeginWithTransitionContext:(SBLayoutStateTransitionContext *)context {
-    if (self == gPipelineManager && [context respondsToSelector:@selector(fromLayoutState)] && [context respondsToSelector:@selector(toLayoutState)]) {
-        NSString *from = CRPrimaryScene([context fromLayoutState]), *to = CRPrimaryScene([context toLayoutState]);
-        if (![from isEqualToString:to]) {
-            BOOL exclusionChanged = CRSetFrontBundle(CRBundleForScene(to));
-            BOOL active = gStarted && CREnabled() && ![CRLockManager() isUserLocked];
-            if (gExcluded) {
-                CRLog(@"app switch to %@: excluded", gFrontBundle);
-                CRHide(NO);
-                if (exclusionChanged) CRRequestArbitration();
-            } else if (active && gPortraitOnAppSwitch) {
-                CRLog(@"app switch to %@: portrait", gFrontBundle.length ? gFrontBundle : @"home screen");
-                CRHide(NO);
-                CRHold(UIInterfaceOrientationPortrait);
-                if (exclusionChanged) CRRequestArbitration();
-            } else if (active && exclusionChanged) {
-                CRLog(@"app switch to %@: hold current", gFrontBundle.length ? gFrontBundle : @"home screen");
-                gHeld = CRActiveOrientation();
-                gHolding = YES;
-                CRRequestArbitration();
-            }
-        }
-    }
+    if (self == gPipelineManager) CRLayoutTransitionBegan(context);
     %orig;
 }
 
@@ -888,18 +918,48 @@ static NSString *CRPrimaryScene(SBLayoutState *state) {
         keyboardInputs:[inputs keyboardInputs] ambientPresentationInputs:[inputs ambientPresentationInputs]];
 }
 %end
+%end
+
+// iOS 15: the older path
+%group Legacy
+%hook SpringBoard
+// Every orientation change reaches SpringBoard here, physical ones included while holding (unlike the
+// system's lock overrides, which stop them). The physical orientation is recorded; while holding, only
+// the held orientation is let through, so the screen stays put.
+- (void)_deviceOrientationChanged:(long long)orientation {
+    if (!gPassing) {
+        if (orientation != gRawDevice) {
+            gRawDevice = (UIDeviceOrientation)orientation;
+            dispatch_async(dispatch_get_main_queue(), ^{ [[CRController shared] deviceOrientationChanged]; });
+        }
+        if (gHolding && !gExcluded && orientation != gHeld) return;
+    }
+    %orig;
+}
+%end
+
+%hook SBLayoutStateTransitionCoordinator
+- (void)beginTransitionForWorkspaceTransaction:(id)transaction {
+    %orig;
+    if ([self respondsToSelector:@selector(transitionContext)]) CRLayoutTransitionBegan([self transitionContext]);
+}
+%end
+%end
 
 static void CRPrefsChangedCallback(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef info) {
     dispatch_async(dispatch_get_main_queue(), ^{ [[CRController shared] prefsChanged]; });
 }
 
 %ctor {
-    // Only on the iOS 17 traits pipeline; elsewhere the hooks would have nothing to act on
-    if (!objc_getClass("SBTraitsEmbeddedDisplayPipelineManager")) return;
+    // iOS 17's traits pipeline, or else the older path through -[SpringBoard _deviceOrientationChanged:]
+    gLegacy = !objc_getClass("SBTraitsEmbeddedDisplayPipelineManager");
+    if (gLegacy && ![objc_getClass("SpringBoard") instancesRespondToSelector:@selector(_deviceOrientationChanged:)]) return;
     CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, CRPrefsChangedCallback,
                                     CFSTR(CR_PREFS_CHANGED), NULL, CFNotificationSuspensionBehaviorCoalesce);
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(6.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         [[CRController shared] start];
     });
-    %init;
+    %init(Common);
+    if (gLegacy) %init(Legacy);
+    else %init(Modern);
 }
