@@ -132,7 +132,14 @@ def main():
             strings = {english: translated[i] for english, translated in table.items()}
             with open(os.path.join(folder, name + '.strings'), 'wb') as f:
                 plistlib.dump(strings, f, fmt=plistlib.FMT_XML, sort_keys=True)
-    print(f'{len(LANGUAGES)} languages, {len(ROOT)} settings strings, {len(TWEAK)} button strings')
+    # English too: iOS only picks from the languages a bundle lists, so without an English folder an
+    # English phone would get whichever other language comes next in its language list
+    folder = os.path.join(RESOURCES, 'en.lproj')
+    os.makedirs(folder, exist_ok=True)
+    for name, table in (('Root', ROOT), ('Tweak', TWEAK)):
+        with open(os.path.join(folder, name + '.strings'), 'wb') as f:
+            plistlib.dump({english: english for english in table}, f, fmt=plistlib.FMT_XML, sort_keys=True)
+    print(f'English + {len(LANGUAGES)} languages, {len(ROOT)} settings strings, {len(TWEAK)} button strings')
 
 if __name__ == '__main__':
     main()
