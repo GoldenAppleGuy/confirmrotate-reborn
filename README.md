@@ -6,7 +6,7 @@ Asks before the screen rotates. Turn the phone and a button appears, upright for
 
 - **Confirm button**: appears beside the volume buttons when the phone is turned, showing the rotation lock symbol and "Rotate?". Haptic feedback on tap.
 - **Only when it can rotate**: no button for apps that don't support the new orientation, or on the home and lock screens.
-- **Auto-rotate** (optional): a ring fills around the button and the screen rotates by itself after a set delay. The button then reads "Cancel?": tap it, or turn back, to keep the screen as it is.
+- **Auto-rotate** (optional): a ring fills around the button and the screen rotates by itself after a set delay. With Tap to Cancel, the button reads "Cancel?" and a tap keeps the screen as it is; turning back always cancels.
 - **Gestures**: long press the button to rotate and add the app to the blacklist; swipe it away to dismiss it.
 - **Portrait on app switch** (optional): apps open in portrait, decided before they appear (no visible turn).
 - **Whitelist / blacklist**: limit the tweak to some apps, or let some apps rotate freely.

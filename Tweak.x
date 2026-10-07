@@ -7,8 +7,8 @@
 // the pipeline to run again, which rotates the screen.
 //
 // The button: tap to rotate; long press to rotate and add the app to the blacklist; swipe to dismiss.
-// With auto-rotate on, it rotates by itself after a delay (a ring fills around it as it counts down),
-// and reads "Cancel?" instead: a tap keeps the screen as it is.
+// With auto-rotate on, it rotates by itself after a delay (a ring fills around it as it counts down);
+// with Tap to Cancel as well, it reads "Cancel?" instead and a tap keeps the screen as it is.
 //
 // The Control Center lock still wins: while it is on, nothing is held and no button shows.
 // Settings: TweakSettings > ConfirmRotate Reborn (domain com.goldenappleguy.confirmrotatereborn; settings from
@@ -163,6 +163,7 @@ static CGFloat gDistanceFromStatusBar = 0.25;
 #define CR_EDGE_INSET 0.10
 static NSTimeInterval gHideAfter = 5.0;
 static NSTimeInterval gAutoRotateAfter;   // 0: off
+static BOOL gTapToCancel = YES;           // with auto-rotate: the button reads "Cancel?" and a tap cancels
 static BOOL gPortraitOnAppSwitch;
 static NSSet<NSString *> *gAlwaysShowApps; // apps that rotate themselves without declaring it
 static NSSet<NSString *> *gWhitelistApps;  // when not empty, the only apps the tweak acts in
@@ -249,7 +250,17 @@ static void CRLoadPrefs(void) {
     gIconColor = CRPrefString(CFSTR("IconColor"), @"Default");
     gDistanceFromStatusBar = round(CRPrefNumber(CFSTR("DistanceFromStatusBar"), 25, 5, 95)) / 100.0;
     gHideAfter = round(CRPrefNumber(CFSTR("HideAfter"), 5, 1, 15));
-    gAutoRotateAfter = round(CRPrefNumber(CFSTR("AutoRotateAfter"), 0, 0, 10));
+    // Auto-Rotate switch (with Tap to Cancel and the delay as its options). Earlier versions had only the
+    // delay, 0 meaning off: a delay already set turns the switch on, once.
+    CFPropertyListRef autoRotate = CFPreferencesCopyAppValue(CFSTR("AutoRotate"), CR_PREFS_DOMAIN);
+    if (autoRotate) CFRelease(autoRotate);
+    else if (CRPrefNumber(CFSTR("AutoRotateAfter"), 0, 0, 10) >= 1) {
+        CFPreferencesSetAppValue(CFSTR("AutoRotate"), kCFBooleanTrue, CR_PREFS_DOMAIN);
+        CFPreferencesAppSynchronize(CR_PREFS_DOMAIN);
+    }
+    BOOL autoRotateOn = CRPrefNumber(CFSTR("AutoRotate"), 0, 0, 1) != 0;
+    gAutoRotateAfter = autoRotateOn ? round(CRPrefNumber(CFSTR("AutoRotateAfter"), 3, 1, 10)) : 0;
+    gTapToCancel = CRPrefNumber(CFSTR("TapToCancel"), 1, 0, 1) != 0;
     gAlwaysShowApps = CRPrefAppSet(CFSTR("AlwaysShowApps"));
     gWhitelistApps = CRPrefAppSet(CFSTR("WhitelistApps"));
     gBlacklistApps = CRPrefAppSet(CFSTR("BlacklistApps"));
@@ -462,7 +473,7 @@ static void CRConfirmAndBlacklist(void) {
 }
 
 - (void)tapped:(UITapGestureRecognizer *)gesture {
-    if (gAutoRotateAfter > 0) { // the button reads "Cancel?": keep the screen as it is
+    if (gAutoRotateAfter > 0 && gTapToCancel) { // the button reads "Cancel?": keep the screen as it is
         if (!gShown) return;
         CRLog(@"cancelled");
         [[[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleLight] impactOccurred];
@@ -544,8 +555,8 @@ static UIView *CRMakeButton(void) {
     [icon sizeToFit];
 
     UILabel *caption = [UILabel new];
-    BOOL autoRotate = gAutoRotateAfter > 0;
-    caption.text = autoRotate ? @"Cancel?" : @"Rotate?";
+    BOOL cancels = gAutoRotateAfter > 0 && gTapToCancel;
+    caption.text = cancels ? @"Cancel?" : @"Rotate?";
     caption.font = [UIFont systemFontOfSize:MAX(9.0, round(gButtonSize * 0.16)) weight:UIFontWeightSemibold];
     caption.textColor = accent;
     caption.adjustsFontSizeToFitWidth = YES;
@@ -571,7 +582,7 @@ static UIView *CRMakeButton(void) {
     [button addGestureRecognizer:longPress];
     [button addGestureRecognizer:[[UIPanGestureRecognizer alloc] initWithTarget:gGestures action:@selector(panned:)]];
 
-    button.accessibilityLabel = autoRotate ? @"Cancel rotation" : @"Rotate screen";
+    button.accessibilityLabel = cancels ? @"Cancel rotation" : @"Rotate screen";
     button.isAccessibilityElement = YES;
     button.accessibilityTraits = UIAccessibilityTraitButton;
     return button;
@@ -678,13 +689,14 @@ static void CRShow(UIDeviceOrientation device, UIInterfaceOrientation target) {
     } completion:nil];
 
     CRStartAutoRotate(button);
-    // With auto-rotate on, stay up at least until it fires
-    CRScheduleHide(gAutoRotateAfter > 0 ? MAX(gHideAfter, gAutoRotateAfter + 1) : gHideAfter);
+    // With auto-rotate on, the delay takes the place of Hide After: the button goes when it rotates (or is
+    // cancelled); this is only a backstop
+    CRScheduleHide(gAutoRotateAfter > 0 ? gAutoRotateAfter + 1 : gHideAfter);
 }
 
 static void CRLogPrefs(void) {
-    CRLog(@"prefs: enabled=%d appSwitch=%d size=%.0f opacity=%.2f color=%@ hide=%.0f auto=%.0f always=%@ white=%@ black=%@ (front %@, excluded %d)",
-          gEnabled, gPortraitOnAppSwitch, gButtonSize, gButtonOpacity, gIconColor, gHideAfter, gAutoRotateAfter,
+    CRLog(@"prefs: enabled=%d appSwitch=%d size=%.0f opacity=%.2f color=%@ hide=%.0f auto=%.0f cancel=%d always=%@ white=%@ black=%@ (front %@, excluded %d)",
+          gEnabled, gPortraitOnAppSwitch, gButtonSize, gButtonOpacity, gIconColor, gHideAfter, gAutoRotateAfter, gTapToCancel,
           [gAlwaysShowApps.allObjects componentsJoinedByString:@","], [gWhitelistApps.allObjects componentsJoinedByString:@","],
           [gBlacklistApps.allObjects componentsJoinedByString:@","], gFrontBundle, gExcluded);
 }

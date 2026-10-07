@@ -2,13 +2,23 @@
 // app picker, used by Always Show In, is loaded into the settings app before that row is opened.
 
 #import <Preferences/PSListController.h>
+#import <Preferences/PSSpecifier.h>
 #import <dlfcn.h>
 #import <rootless.h>
 
 @interface CRRootListController : PSListController
 @end
 
-@implementation CRRootListController
+@interface PSListController ()
+- (BOOL)containsSpecifier:(PSSpecifier *)specifier;
+@end
+
+// Rows with "dependsOn" = AutoRotate are shown only while that switch is on, and rows with "hiddenBy" =
+// AutoRotate only while it is off
+@implementation CRRootListController {
+    NSArray<PSSpecifier *> *_autoRotateOptions; // shown while Auto-Rotate is on ("dependsOn")
+    NSArray<PSSpecifier *> *_autoRotateHides;   // shown while it is off ("hiddenBy")
+}
 
 + (void)initialize {
     if (self == [CRRootListController class]) {
@@ -18,9 +28,31 @@
 
 - (NSArray *)specifiers {
     if (!_specifiers) {
-        _specifiers = [self loadSpecifiersFromPlistName:@"Root" target:self];
+        NSMutableArray *specifiers = [[self loadSpecifiersFromPlistName:@"Root" target:self] mutableCopy];
+        NSArray *(^matching)(NSString *, NSString *) = ^NSArray *(NSString *property, NSString *value) {
+            return [specifiers filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(PSSpecifier *specifier, NSDictionary *bindings) {
+                return [[specifier propertyForKey:property] isEqualToString:value];
+            }]];
+        };
+        _autoRotateOptions = matching(@"dependsOn", @"AutoRotate");
+        _autoRotateHides = matching(@"hiddenBy", @"AutoRotate");
+        PSSpecifier *autoRotate = matching(@"key", @"AutoRotate").firstObject;
+        BOOL on = autoRotate && [[self readPreferenceValue:autoRotate] boolValue];
+        [specifiers removeObjectsInArray:on ? _autoRotateHides : _autoRotateOptions];
+        _specifiers = specifiers;
     }
     return _specifiers;
+}
+
+// Rows follow the Auto-Rotate switch, right after it: its options (Tap to Cancel, Delay) while it is on,
+// and Hide After while it is off (with auto-rotate, the delay decides when the button goes)
+- (void)setPreferenceValue:(id)value specifier:(PSSpecifier *)specifier {
+    [super setPreferenceValue:value specifier:specifier];
+    if (![[specifier propertyForKey:@"key"] isEqualToString:@"AutoRotate"]) return;
+    NSArray *show = [value boolValue] ? _autoRotateOptions : _autoRotateHides;
+    NSArray *hide = [value boolValue] ? _autoRotateHides : _autoRotateOptions;
+    if (hide.count && [self containsSpecifier:hide.firstObject]) [self removeContiguousSpecifiers:hide animated:YES];
+    if (show.count && ![self containsSpecifier:show.firstObject]) [self insertContiguousSpecifiers:show afterSpecifier:specifier animated:YES];
 }
 
 @end
@@ -37,6 +69,7 @@
 static char kCRFormatKey;   // label: block formatting a value
 static char kCRWidthKey;    // label: width reserved for the value (widest text, larger font)
 static char kCRReserveKey;  // slider: space kept free of the track (and knob) at the trailing end
+static char kCRLeadingKey;  // slider: space kept free at the leading end, for an inline label
 #define CR_VALUE_FONT_SIZE 16.0
 
 @interface CRValueLabel : UILabel // no ivars: installed on an existing label with object_setClass
@@ -64,7 +97,7 @@ static char kCRReserveKey;  // slider: space kept free of the track (and knob) a
 @end
 
 // A subclass of the slider's own class, made at runtime, whose track (and so the knob) stops short of the
-// trailing end by the reserved amount
+// trailing end by the reserved amount, and starts after the leading reserve (if any)
 static Class CRPaddedSliderClass(Class base) {
     NSString *name = [@"CRPadded_" stringByAppendingString:NSStringFromClass(base)];
     Class cls = NSClassFromString(name);
@@ -80,6 +113,12 @@ static Class CRPaddedSliderClass(Class base) {
             CGFloat maxX = bounds.size.width - reserve.doubleValue;
             if (CGRectGetMaxX(rect) > maxX) rect.size.width = MAX(0, maxX - rect.origin.x);
         }
+        NSNumber *leading = objc_getAssociatedObject(slider, &kCRLeadingKey);
+        if (leading && rect.origin.x < leading.doubleValue) {
+            CGFloat maxX = CGRectGetMaxX(rect);
+            rect.origin.x = leading.doubleValue;
+            rect.size.width = MAX(0, maxX - rect.origin.x);
+        }
         return rect;
     });
     class_addMethod(cls, sel, imp, method_getTypeEncoding(class_getInstanceMethod(base, sel)));
@@ -90,7 +129,11 @@ static Class CRPaddedSliderClass(Class base) {
 @interface CRIntegerSliderCell : PSSliderTableCell
 @end
 
-@implementation CRIntegerSliderCell
+// An "inlineLabel" property puts a title at the leading end of the row (e.g. "Delay"), for a slider that
+// sits in a group with other rows rather than under its own header.
+@implementation CRIntegerSliderCell {
+    UILabel *_inlineLabel;
+}
 
 - (UISlider *)slider {
     return [self.control isKindOfClass:[UISlider class]] ? (UISlider *)self.control : nil;
@@ -148,6 +191,26 @@ static Class CRPaddedSliderClass(Class base) {
         if (![NSStringFromClass([slider class]) hasPrefix:@"CRPadded_"]) object_setClass(slider, CRPaddedSliderClass([slider class]));
         [label.superview setNeedsLayout];
         [slider setNeedsLayout];
+    }
+    NSString *inlineText = [self.specifier propertyForKey:@"inlineLabel"];
+    if (inlineText.length) {
+        if (!_inlineLabel) {
+            _inlineLabel = [UILabel new];
+            _inlineLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleBody];
+            _inlineLabel.textColor = [UIColor labelColor];
+            _inlineLabel.userInteractionEnabled = NO;
+            [slider addSubview:_inlineLabel];
+        }
+        _inlineLabel.text = inlineText;
+        [_inlineLabel sizeToFit];
+        CGFloat h = _inlineLabel.bounds.size.height;
+        _inlineLabel.frame = CGRectMake(0, round((slider.bounds.size.height - h) / 2), _inlineLabel.bounds.size.width, h);
+        NSNumber *leading = @(_inlineLabel.bounds.size.width + gap + knobOverhang);
+        if (![objc_getAssociatedObject(slider, &kCRLeadingKey) isEqual:leading]) {
+            objc_setAssociatedObject(slider, &kCRLeadingKey, leading, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            [label.superview setNeedsLayout];
+            [slider setNeedsLayout];
+        }
     }
     label.frame = label.frame; // place it in the reserved space
     label.text = label.text;   // reformat what is showing now

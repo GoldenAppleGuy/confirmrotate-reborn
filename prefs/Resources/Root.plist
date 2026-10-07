@@ -26,9 +26,9 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>footerText</key>
-			<string>Whitelisted apps are the only ones the tweak acts in. Blacklisted apps rotate freely, as without the tweak. Long press the button to rotate and blacklist the app; swipe it to dismiss.</string>
+			<string>Whitelisted apps are the only ones the tweak acts in. Blacklisted apps rotate freely, as without the tweak. Always Show In is for apps that handle rotation themselves.</string>
 			<key>label</key>
-			<string>Tweak Settings</string>
+			<string>Apps</string>
 		</dict>
 		<dict>
 			<key>PostNotification</key>
@@ -85,32 +85,6 @@
 			<true/>
 		</dict>
 		<dict>
-			<key>cell</key>
-			<string>PSGroupCell</string>
-			<key>footerText</key>
-			<string>Returns to portrait when another app opens.</string>
-		</dict>
-		<dict>
-			<key>PostNotification</key>
-			<string>com.goldenappleguy.confirmrotatereborn/changed</string>
-			<key>cell</key>
-			<string>PSSwitchCell</string>
-			<key>default</key>
-			<false/>
-			<key>defaults</key>
-			<string>com.goldenappleguy.confirmrotatereborn</string>
-			<key>key</key>
-			<string>PortraitOnAppSwitch</string>
-			<key>label</key>
-			<string>Portrait on App Switch</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSGroupCell</string>
-			<key>footerText</key>
-			<string>Shows the button for apps that handle rotation themselves.</string>
-		</dict>
-		<dict>
 			<key>PostNotification</key>
 			<string>com.goldenappleguy.confirmrotatereborn/changed</string>
 			<key>alphabeticIndexingEnabled</key>
@@ -140,8 +114,124 @@
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>Auto-Rotate rotates after a delay while a ring fills around the button, in place of Hide After; with Tap to Cancel, a tap keeps the screen as it is. Long press the button to rotate and blacklist the app; swipe it to dismiss.</string>
 			<key>label</key>
-			<string>Button Shape</string>
+			<string>Behavior</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.goldenappleguy.confirmrotatereborn/changed</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.goldenappleguy.confirmrotatereborn</string>
+			<key>key</key>
+			<string>PortraitOnAppSwitch</string>
+			<key>label</key>
+			<string>Portrait on App Switch</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.goldenappleguy.confirmrotatereborn/changed</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.goldenappleguy.confirmrotatereborn</string>
+			<key>id</key>
+			<string>AutoRotate</string>
+			<key>key</key>
+			<string>AutoRotate</string>
+			<key>label</key>
+			<string>Auto-Rotate</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.goldenappleguy.confirmrotatereborn/changed</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.goldenappleguy.confirmrotatereborn</string>
+			<key>dependsOn</key>
+			<string>AutoRotate</string>
+			<key>key</key>
+			<string>TapToCancel</string>
+			<key>label</key>
+			<string>Tap to Cancel</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.goldenappleguy.confirmrotatereborn/changed</string>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>cellClass</key>
+			<string>CRIntegerSliderCell</string>
+			<key>default</key>
+			<integer>3</integer>
+			<key>defaults</key>
+			<string>com.goldenappleguy.confirmrotatereborn</string>
+			<key>dependsOn</key>
+			<string>AutoRotate</string>
+			<key>inlineLabel</key>
+			<string>Delay</string>
+			<key>isSegmented</key>
+			<true/>
+			<key>key</key>
+			<string>AutoRotateAfter</string>
+			<key>max</key>
+			<integer>10</integer>
+			<key>min</key>
+			<integer>1</integer>
+			<key>segmentCount</key>
+			<integer>9</integer>
+			<key>showValue</key>
+			<true/>
+			<key>valueSuffix</key>
+			<string>s</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.goldenappleguy.confirmrotatereborn/changed</string>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>cellClass</key>
+			<string>CRIntegerSliderCell</string>
+			<key>default</key>
+			<integer>5</integer>
+			<key>defaults</key>
+			<string>com.goldenappleguy.confirmrotatereborn</string>
+			<key>hiddenBy</key>
+			<string>AutoRotate</string>
+			<key>inlineLabel</key>
+			<string>Hide After</string>
+			<key>isSegmented</key>
+			<true/>
+			<key>key</key>
+			<string>HideAfter</string>
+			<key>max</key>
+			<integer>15</integer>
+			<key>min</key>
+			<integer>1</integer>
+			<key>segmentCount</key>
+			<integer>14</integer>
+			<key>showValue</key>
+			<true/>
+			<key>valueSuffix</key>
+			<string>s</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>Position is the distance from the status bar, along the side of the screen.</string>
+			<key>label</key>
+			<string>Appearance</string>
 		</dict>
 		<dict>
 			<key>PostNotification</key>
@@ -164,10 +254,6 @@
 				<integer>0</integer>
 				<integer>1</integer>
 			</array>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSGroupCell</string>
 		</dict>
 		<dict>
 			<key>PostNotification</key>
@@ -210,12 +296,6 @@
 			</array>
 		</dict>
 		<dict>
-			<key>cell</key>
-			<string>PSGroupCell</string>
-			<key>label</key>
-			<string>Button Size</string>
-		</dict>
-		<dict>
 			<key>PostNotification</key>
 			<string>com.goldenappleguy.confirmrotatereborn/changed</string>
 			<key>cell</key>
@@ -226,6 +306,8 @@
 			<integer>56</integer>
 			<key>defaults</key>
 			<string>com.goldenappleguy.confirmrotatereborn</string>
+			<key>inlineLabel</key>
+			<string>Size</string>
 			<key>isSegmented</key>
 			<true/>
 			<key>key</key>
@@ -242,12 +324,6 @@
 			<string>px</string>
 		</dict>
 		<dict>
-			<key>cell</key>
-			<string>PSGroupCell</string>
-			<key>label</key>
-			<string>Button Opacity</string>
-		</dict>
-		<dict>
 			<key>PostNotification</key>
 			<string>com.goldenappleguy.confirmrotatereborn/changed</string>
 			<key>cell</key>
@@ -258,6 +334,8 @@
 			<integer>100</integer>
 			<key>defaults</key>
 			<string>com.goldenappleguy.confirmrotatereborn</string>
+			<key>inlineLabel</key>
+			<string>Opacity</string>
 			<key>isSegmented</key>
 			<true/>
 			<key>key</key>
@@ -274,12 +352,6 @@
 			<string>%</string>
 		</dict>
 		<dict>
-			<key>cell</key>
-			<string>PSGroupCell</string>
-			<key>label</key>
-			<string>Distance From Status Bar</string>
-		</dict>
-		<dict>
 			<key>PostNotification</key>
 			<string>com.goldenappleguy.confirmrotatereborn/changed</string>
 			<key>cell</key>
@@ -290,6 +362,8 @@
 			<integer>25</integer>
 			<key>defaults</key>
 			<string>com.goldenappleguy.confirmrotatereborn</string>
+			<key>inlineLabel</key>
+			<string>Position</string>
 			<key>isSegmented</key>
 			<true/>
 			<key>key</key>
@@ -304,72 +378,6 @@
 			<true/>
 			<key>valueSuffix</key>
 			<string>%</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSGroupCell</string>
-			<key>label</key>
-			<string>Hide After</string>
-		</dict>
-		<dict>
-			<key>PostNotification</key>
-			<string>com.goldenappleguy.confirmrotatereborn/changed</string>
-			<key>cell</key>
-			<string>PSSliderCell</string>
-			<key>cellClass</key>
-			<string>CRIntegerSliderCell</string>
-			<key>default</key>
-			<integer>5</integer>
-			<key>defaults</key>
-			<string>com.goldenappleguy.confirmrotatereborn</string>
-			<key>isSegmented</key>
-			<true/>
-			<key>key</key>
-			<string>HideAfter</string>
-			<key>max</key>
-			<integer>15</integer>
-			<key>min</key>
-			<integer>1</integer>
-			<key>segmentCount</key>
-			<integer>14</integer>
-			<key>showValue</key>
-			<true/>
-			<key>valueSuffix</key>
-			<string>s</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSGroupCell</string>
-			<key>label</key>
-			<string>Auto-Rotate After</string>
-		</dict>
-		<dict>
-			<key>PostNotification</key>
-			<string>com.goldenappleguy.confirmrotatereborn/changed</string>
-			<key>cell</key>
-			<string>PSSliderCell</string>
-			<key>cellClass</key>
-			<string>CRIntegerSliderCell</string>
-			<key>default</key>
-			<integer>0</integer>
-			<key>defaults</key>
-			<string>com.goldenappleguy.confirmrotatereborn</string>
-			<key>isSegmented</key>
-			<true/>
-			<key>key</key>
-			<string>AutoRotateAfter</string>
-			<key>max</key>
-			<integer>10</integer>
-			<key>min</key>
-			<integer>0</integer>
-			<key>segmentCount</key>
-			<integer>10</integer>
-			<key>showValue</key>
-			<true/>
-			<key>valueSuffix</key>
-			<string>s</string>
-			<key>zeroText</key>
-			<string>Off</string>
 		</dict>
 	</array>
 	<key>title</key>
