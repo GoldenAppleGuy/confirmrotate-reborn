@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>%</key>
+	<string>%</string>
+	<key>Always Show In</key>
+	<string>Immer anzeigen in</string>
+	<key>Appearance</key>
+	<string>Darstellung</string>
+	<key>Apps</key>
+	<string>Apps</string>
+	<key>Auto-Rotate</key>
+	<string>Automatisch drehen</string>
+	<key>Auto-Rotate rotates after a delay while a ring fills around the button, in place of Hide After; with Tap to Cancel, a tap keeps the screen as it is. Long press the button to rotate and blacklist the app; swipe it to dismiss.</key>
+	<string>„Automatisch drehen“ dreht nach einer Verzögerung, während sich ein Ring um die Taste füllt, anstelle von „Ausblenden nach“. Mit „Tippen zum Abbrechen“ bleibt der Bildschirm bei einem Tippen, wie er ist. Lange auf die Taste drücken, um zu drehen und die App auf die Blacklist zu setzen; wischen, um sie auszublenden.</string>
+	<key>Behavior</key>
+	<string>Verhalten</string>
+	<key>Blacklisted Apps</key>
+	<string>Apps auf der Blacklist</string>
+	<key>Blue</key>
+	<string>Blau</string>
+	<key>Cancel</key>
+	<string>Abbrechen</string>
+	<key>Circle</key>
+	<string>Kreis</string>
+	<key>Default</key>
+	<string>Standard</string>
+	<key>Delay</key>
+	<string>Verzögerung</string>
+	<key>Enabled</key>
+	<string>Aktiviert</string>
+	<key>Enter Value</key>
+	<string>Wert eingeben</string>
+	<key>From %1$@ to %2$@.</key>
+	<string>Von %1$@ bis %2$@.</string>
+	<key>Green</key>
+	<string>Grün</string>
+	<key>Haptic Feedback</key>
+	<string>Haptisches Feedback</string>
+	<key>Hide After</key>
+	<string>Ausblenden nach</string>
+	<key>Icon Color</key>
+	<string>Symbolfarbe</string>
+	<key>Opacity</key>
+	<string>Deckkraft</string>
+	<key>Orange</key>
+	<string>Orange</string>
+	<key>Pink</key>
+	<string>Pink</string>
+	<key>Portrait on App Switch</key>
+	<string>Hochformat beim App-Wechsel</string>
+	<key>Position</key>
+	<string>Position</string>
+	<key>Position is the distance from the status bar, along the side of the screen.</key>
+	<string>Die Position ist der Abstand zur Statusleiste entlang des Bildschirmrands.</string>
+	<key>Purple</key>
+	<string>Lila</string>
+	<key>Red</key>
+	<string>Rot</string>
+	<key>Rounded Square</key>
+	<string>Abgerundetes Quadrat</string>
+	<key>Selected</key>
+	<string>Ausgewählt</string>
+	<key>Set</key>
+	<string>Übernehmen</string>
+	<key>Size</key>
+	<string>Größe</string>
+	<key>Tap to Cancel</key>
+	<string>Tippen zum Abbrechen</string>
+	<key>Teal</key>
+	<string>Türkis</string>
+	<key>Whitelisted Apps</key>
+	<string>Apps auf der Whitelist</string>
+	<key>Whitelisted apps are the only ones the tweak acts in. Blacklisted apps rotate freely, as without the tweak. Always Show In is for apps that handle rotation themselves.</key>
+	<string>Nur in Apps auf der Whitelist ist der Tweak aktiv. Apps auf der Blacklist drehen sich frei, wie ohne den Tweak. „Immer anzeigen in“ ist für Apps gedacht, die die Drehung selbst steuern.</string>
+	<key>Yellow</key>
+	<string>Gelb</string>
+	<key>px</key>
+	<string>px</string>
+	<key>s</key>
+	<string>s</string>
+</dict>
+</plist>

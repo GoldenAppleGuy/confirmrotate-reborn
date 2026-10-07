@@ -37,10 +37,12 @@
 			<true/>
 			<key>cell</key>
 			<string>PSLinkCell</string>
+			<key>cellClass</key>
+			<string>CRCountLinkCell</string>
 			<key>defaults</key>
 			<string>com.goldenappleguy.confirmrotatereborn</string>
 			<key>detail</key>
-			<string>ATLApplicationListMultiSelectionController</string>
+			<string>CRSelectedFirstListController</string>
 			<key>isController</key>
 			<true/>
 			<key>key</key>
@@ -64,10 +66,12 @@
 			<true/>
 			<key>cell</key>
 			<string>PSLinkCell</string>
+			<key>cellClass</key>
+			<string>CRCountLinkCell</string>
 			<key>defaults</key>
 			<string>com.goldenappleguy.confirmrotatereborn</string>
 			<key>detail</key>
-			<string>ATLApplicationListMultiSelectionController</string>
+			<string>CRSelectedFirstListController</string>
 			<key>isController</key>
 			<true/>
 			<key>key</key>
@@ -91,10 +95,12 @@
 			<true/>
 			<key>cell</key>
 			<string>PSLinkCell</string>
+			<key>cellClass</key>
+			<string>CRCountLinkCell</string>
 			<key>defaults</key>
 			<string>com.goldenappleguy.confirmrotatereborn</string>
 			<key>detail</key>
-			<string>ATLApplicationListMultiSelectionController</string>
+			<string>CRSelectedFirstListController</string>
 			<key>isController</key>
 			<true/>
 			<key>key</key>
@@ -224,6 +230,20 @@
 			<true/>
 			<key>valueSuffix</key>
 			<string>s</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.goldenappleguy.confirmrotatereborn/changed</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.goldenappleguy.confirmrotatereborn</string>
+			<key>key</key>
+			<string>Haptics</string>
+			<key>label</key>
+			<string>Haptic Feedback</string>
 		</dict>
 		<dict>
 			<key>cell</key>

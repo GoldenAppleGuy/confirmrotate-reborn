@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>%</key>
+	<string>%</string>
+	<key>Always Show In</key>
+	<string>Всегда показывать в</string>
+	<key>Appearance</key>
+	<string>Внешний вид</string>
+	<key>Apps</key>
+	<string>Приложения</string>
+	<key>Auto-Rotate</key>
+	<string>Автоповорот</string>
+	<key>Auto-Rotate rotates after a delay while a ring fills around the button, in place of Hide After; with Tap to Cancel, a tap keeps the screen as it is. Long press the button to rotate and blacklist the app; swipe it to dismiss.</key>
+	<string>Автоповорот поворачивает экран после задержки, пока вокруг кнопки заполняется кольцо, вместо «Скрывать через». С «Нажатие отменяет» нажатие оставляет экран как есть. Удерживайте кнопку, чтобы повернуть экран и добавить приложение в чёрный список; смахните её, чтобы скрыть.</string>
+	<key>Behavior</key>
+	<string>Поведение</string>
+	<key>Blacklisted Apps</key>
+	<string>Чёрный список</string>
+	<key>Blue</key>
+	<string>Синий</string>
+	<key>Cancel</key>
+	<string>Отмена</string>
+	<key>Circle</key>
+	<string>Круг</string>
+	<key>Default</key>
+	<string>По умолчанию</string>
+	<key>Delay</key>
+	<string>Задержка</string>
+	<key>Enabled</key>
+	<string>Включено</string>
+	<key>Enter Value</key>
+	<string>Введите значение</string>
+	<key>From %1$@ to %2$@.</key>
+	<string>От %1$@ до %2$@.</string>
+	<key>Green</key>
+	<string>Зелёный</string>
+	<key>Haptic Feedback</key>
+	<string>Тактильный отклик</string>
+	<key>Hide After</key>
+	<string>Скрывать через</string>
+	<key>Icon Color</key>
+	<string>Цвет значка</string>
+	<key>Opacity</key>
+	<string>Непрозрачность</string>
+	<key>Orange</key>
+	<string>Оранжевый</string>
+	<key>Pink</key>
+	<string>Розовый</string>
+	<key>Portrait on App Switch</key>
+	<string>Портрет при смене приложения</string>
+	<key>Position</key>
+	<string>Положение</string>
+	<key>Position is the distance from the status bar, along the side of the screen.</key>
+	<string>Положение — расстояние от строки состояния вдоль края экрана.</string>
+	<key>Purple</key>
+	<string>Фиолетовый</string>
+	<key>Red</key>
+	<string>Красный</string>
+	<key>Rounded Square</key>
+	<string>Скруглённый квадрат</string>
+	<key>Selected</key>
+	<string>Выбранные</string>
+	<key>Set</key>
+	<string>Готово</string>
+	<key>Size</key>
+	<string>Размер</string>
+	<key>Tap to Cancel</key>
+	<string>Нажатие отменяет</string>
+	<key>Teal</key>
+	<string>Бирюзовый</string>
+	<key>Whitelisted Apps</key>
+	<string>Белый список</string>
+	<key>Whitelisted apps are the only ones the tweak acts in. Blacklisted apps rotate freely, as without the tweak. Always Show In is for apps that handle rotation themselves.</key>
+	<string>Твик работает только в приложениях из белого списка. Приложения из чёрного списка поворачиваются свободно, как без твика. «Всегда показывать в» — для приложений, которые сами управляют поворотом.</string>
+	<key>Yellow</key>
+	<string>Жёлтый</string>
+	<key>px</key>
+	<string>px</string>
+	<key>s</key>
+	<string>с</string>
+</dict>
+</plist>

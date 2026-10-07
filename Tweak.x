@@ -17,6 +17,7 @@
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
 #import <math.h>
+#import <rootless.h>
 
 #define CR_PREFS_DOMAIN CFSTR("com.goldenappleguy.confirmrotatereborn")
 #define CR_OLD_PREFS_DOMAIN CFSTR("com.goldenappleguy.confirmrotate17")
@@ -164,6 +165,7 @@ static CGFloat gDistanceFromStatusBar = 0.25;
 static NSTimeInterval gHideAfter = 5.0;
 static NSTimeInterval gAutoRotateAfter;   // 0: off
 static BOOL gTapToCancel = YES;           // with auto-rotate: the button reads "Cancel?" and a tap cancels
+static BOOL gHaptics = YES;
 static BOOL gPortraitOnAppSwitch;
 static NSSet<NSString *> *gAlwaysShowApps; // apps that rotate themselves without declaring it
 static NSSet<NSString *> *gWhitelistApps;  // when not empty, the only apps the tweak acts in
@@ -261,9 +263,23 @@ static void CRLoadPrefs(void) {
     BOOL autoRotateOn = CRPrefNumber(CFSTR("AutoRotate"), 0, 0, 1) != 0;
     gAutoRotateAfter = autoRotateOn ? round(CRPrefNumber(CFSTR("AutoRotateAfter"), 3, 1, 10)) : 0;
     gTapToCancel = CRPrefNumber(CFSTR("TapToCancel"), 1, 0, 1) != 0;
+    gHaptics = CRPrefNumber(CFSTR("Haptics"), 1, 0, 1) != 0;
     gAlwaysShowApps = CRPrefAppSet(CFSTR("AlwaysShowApps"));
     gWhitelistApps = CRPrefAppSet(CFSTR("WhitelistApps"));
     gBlacklistApps = CRPrefAppSet(CFSTR("BlacklistApps"));
+}
+
+// The button's text, translated: the tweak has no bundle of its own, so its strings live in the settings
+// bundle (Tweak.strings in each language folder)
+static NSString *CRLocalized(NSString *key) {
+    static NSBundle *bundle;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{ bundle = [NSBundle bundleWithPath:ROOT_PATH_NS(@"/Library/PreferenceBundles/ConfirmRotateRebornPrefs.bundle")]; });
+    return bundle ? [bundle localizedStringForKey:key value:key table:@"Tweak"] : key;
+}
+
+static void CRHaptic(UIImpactFeedbackStyle style) {
+    if (gHaptics) [[[UIImpactFeedbackGenerator alloc] initWithStyle:style] impactOccurred];
 }
 
 static UIColor *CRAccentColor(void) {
@@ -438,7 +454,7 @@ static void CRHide(BOOL animated) {
 static void CRConfirm(void) {
     if (!gShown) return;
     CRLog(@"confirmed");
-    [[[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleMedium] impactOccurred];
+    CRHaptic(UIImpactFeedbackStyleMedium);
     UIInterfaceOrientation target = gTarget;
     CRHide(YES);
     CRHold(target);
@@ -457,8 +473,10 @@ static void CRConfirmAndBlacklist(void) {
     CFPreferencesSetAppValue(CFSTR("BlacklistApps"), (__bridge CFArrayRef)list, CR_PREFS_DOMAIN);
     CFPreferencesAppSynchronize(CR_PREFS_DOMAIN);
     gBlacklistApps = [NSSet setWithArray:list];
+    // Tell the settings page (its count), as a settings change from there would
+    CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), CFSTR(CR_PREFS_CHANGED), NULL, NULL, YES);
 
-    [[[UINotificationFeedbackGenerator alloc] init] notificationOccurred:UINotificationFeedbackTypeSuccess];
+    if (gHaptics) [[[UINotificationFeedbackGenerator alloc] init] notificationOccurred:UINotificationFeedbackTypeSuccess];
     CRHide(YES);
     CRSetFrontBundle(gFrontBundle); // now excluded: the pipeline gets the physical orientation again
     CRRequestArbitration();
@@ -476,7 +494,7 @@ static void CRConfirmAndBlacklist(void) {
     if (gAutoRotateAfter > 0 && gTapToCancel) { // the button reads "Cancel?": keep the screen as it is
         if (!gShown) return;
         CRLog(@"cancelled");
-        [[[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleLight] impactOccurred];
+        CRHaptic(UIImpactFeedbackStyleLight);
         CRHide(YES);
         return;
     }
@@ -556,7 +574,7 @@ static UIView *CRMakeButton(void) {
 
     UILabel *caption = [UILabel new];
     BOOL cancels = gAutoRotateAfter > 0 && gTapToCancel;
-    caption.text = cancels ? @"Cancel?" : @"Rotate?";
+    caption.text = CRLocalized(cancels ? @"Cancel?" : @"Rotate?");
     caption.font = [UIFont systemFontOfSize:MAX(9.0, round(gButtonSize * 0.16)) weight:UIFontWeightSemibold];
     caption.textColor = accent;
     caption.adjustsFontSizeToFitWidth = YES;
@@ -582,7 +600,7 @@ static UIView *CRMakeButton(void) {
     [button addGestureRecognizer:longPress];
     [button addGestureRecognizer:[[UIPanGestureRecognizer alloc] initWithTarget:gGestures action:@selector(panned:)]];
 
-    button.accessibilityLabel = cancels ? @"Cancel rotation" : @"Rotate screen";
+    button.accessibilityLabel = CRLocalized(cancels ? @"Cancel rotation" : @"Rotate screen");
     button.isAccessibilityElement = YES;
     button.accessibilityTraits = UIAccessibilityTraitButton;
     return button;
@@ -695,8 +713,8 @@ static void CRShow(UIDeviceOrientation device, UIInterfaceOrientation target) {
 }
 
 static void CRLogPrefs(void) {
-    CRLog(@"prefs: enabled=%d appSwitch=%d size=%.0f opacity=%.2f color=%@ hide=%.0f auto=%.0f cancel=%d always=%@ white=%@ black=%@ (front %@, excluded %d)",
-          gEnabled, gPortraitOnAppSwitch, gButtonSize, gButtonOpacity, gIconColor, gHideAfter, gAutoRotateAfter, gTapToCancel,
+    CRLog(@"prefs: enabled=%d appSwitch=%d size=%.0f opacity=%.2f color=%@ hide=%.0f auto=%.0f cancel=%d haptics=%d always=%@ white=%@ black=%@ (front %@, excluded %d)",
+          gEnabled, gPortraitOnAppSwitch, gButtonSize, gButtonOpacity, gIconColor, gHideAfter, gAutoRotateAfter, gTapToCancel, gHaptics,
           [gAlwaysShowApps.allObjects componentsJoinedByString:@","], [gWhitelistApps.allObjects componentsJoinedByString:@","],
           [gBlacklistApps.allObjects componentsJoinedByString:@","], gFrontBundle, gExcluded);
 }

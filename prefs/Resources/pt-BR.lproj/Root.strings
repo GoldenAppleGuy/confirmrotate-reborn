@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>%</key>
+	<string>%</string>
+	<key>Always Show In</key>
+	<string>Sempre mostrar em</string>
+	<key>Appearance</key>
+	<string>Aparência</string>
+	<key>Apps</key>
+	<string>Apps</string>
+	<key>Auto-Rotate</key>
+	<string>Girar automaticamente</string>
+	<key>Auto-Rotate rotates after a delay while a ring fills around the button, in place of Hide After; with Tap to Cancel, a tap keeps the screen as it is. Long press the button to rotate and blacklist the app; swipe it to dismiss.</key>
+	<string>“Girar automaticamente” gira após um atraso enquanto um anel se completa ao redor do botão, no lugar de “Ocultar após”. Com “Toque para cancelar”, um toque mantém a tela como está. Mantenha o botão pressionado para girar e adicionar o app à lista negra; deslize-o para dispensá-lo.</string>
+	<key>Behavior</key>
+	<string>Comportamento</string>
+	<key>Blacklisted Apps</key>
+	<string>Apps na lista negra</string>
+	<key>Blue</key>
+	<string>Azul</string>
+	<key>Cancel</key>
+	<string>Cancelar</string>
+	<key>Circle</key>
+	<string>Círculo</string>
+	<key>Default</key>
+	<string>Padrão</string>
+	<key>Delay</key>
+	<string>Atraso</string>
+	<key>Enabled</key>
+	<string>Ativado</string>
+	<key>Enter Value</key>
+	<string>Inserir valor</string>
+	<key>From %1$@ to %2$@.</key>
+	<string>De %1$@ a %2$@.</string>
+	<key>Green</key>
+	<string>Verde</string>
+	<key>Haptic Feedback</key>
+	<string>Resposta tátil</string>
+	<key>Hide After</key>
+	<string>Ocultar após</string>
+	<key>Icon Color</key>
+	<string>Cor do ícone</string>
+	<key>Opacity</key>
+	<string>Opacidade</string>
+	<key>Orange</key>
+	<string>Laranja</string>
+	<key>Pink</key>
+	<string>Rosa</string>
+	<key>Portrait on App Switch</key>
+	<string>Retrato ao trocar de app</string>
+	<key>Position</key>
+	<string>Posição</string>
+	<key>Position is the distance from the status bar, along the side of the screen.</key>
+	<string>A posição é a distância da barra de status, ao longo da lateral da tela.</string>
+	<key>Purple</key>
+	<string>Roxo</string>
+	<key>Red</key>
+	<string>Vermelho</string>
+	<key>Rounded Square</key>
+	<string>Quadrado arredondado</string>
+	<key>Selected</key>
+	<string>Selecionados</string>
+	<key>Set</key>
+	<string>Definir</string>
+	<key>Size</key>
+	<string>Tamanho</string>
+	<key>Tap to Cancel</key>
+	<string>Toque para cancelar</string>
+	<key>Teal</key>
+	<string>Azul-petróleo</string>
+	<key>Whitelisted Apps</key>
+	<string>Apps na lista branca</string>
+	<key>Whitelisted apps are the only ones the tweak acts in. Blacklisted apps rotate freely, as without the tweak. Always Show In is for apps that handle rotation themselves.</key>
+	<string>O tweak só atua nos apps da lista branca. Os apps da lista negra giram livremente, como sem o tweak. “Sempre mostrar em” é para apps que controlam a rotação sozinhos.</string>
+	<key>Yellow</key>
+	<string>Amarelo</string>
+	<key>px</key>
+	<string>px</string>
+	<key>s</key>
+	<string>s</string>
+</dict>
+</plist>

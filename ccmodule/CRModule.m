@@ -11,13 +11,16 @@
 
 @implementation CRModule
 
+// A phone with a rotate arrow, in teal when on: distinct from the system rotation lock toggle (a lock
+// inside an arrow, white when on)
 - (UIImage *)iconGlyph {
     UIImageSymbolConfiguration *config = [UIImageSymbolConfiguration configurationWithPointSize:24 weight:UIImageSymbolWeightSemibold];
-    return [UIImage systemImageNamed:@"lock.rotation" withConfiguration:config];
+    return [UIImage systemImageNamed:@"rectangle.portrait.rotate" withConfiguration:config]
+        ?: [UIImage systemImageNamed:@"rotate.right" withConfiguration:config];
 }
 
 - (UIColor *)selectedColor {
-    return [UIColor systemBlueColor];
+    return [UIColor systemTealColor];
 }
 
 - (BOOL)isSelected {

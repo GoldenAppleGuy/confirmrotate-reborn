@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Cancel rotation</key>
+	<string>Отменить поворот</string>
+	<key>Cancel?</key>
+	<string>Отменить?</string>
+	<key>Rotate screen</key>
+	<string>Повернуть экран</string>
+	<key>Rotate?</key>
+	<string>Повернуть?</string>
+</dict>
+</plist>

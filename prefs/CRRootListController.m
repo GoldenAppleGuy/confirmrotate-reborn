@@ -3,11 +3,20 @@
 
 #import <Preferences/PSListController.h>
 #import <Preferences/PSSpecifier.h>
+#import <Preferences/PSTableCell.h>
 #import <dlfcn.h>
+#import <objc/runtime.h>
+#import <objc/message.h>
 #import <rootless.h>
 
 @interface CRRootListController : PSListController
+- (void)refreshCounts;
 @end
+
+// Text set in code, translated from the same table (Root.strings) that translates Root.plist
+static NSString *CRLocalized(NSString *key) {
+    return [[NSBundle bundleForClass:[CRRootListController class]] localizedStringForKey:key value:key table:@"Root"];
+}
 
 @interface PSListController ()
 - (BOOL)containsSpecifier:(PSSpecifier *)specifier;
@@ -20,10 +29,211 @@
     NSArray<PSSpecifier *> *_autoRotateHides;   // shown while it is off ("hiddenBy")
 }
 
+// AltList's multi-selection list, shown as a checklist: tapping an app ticks it, and the ticked apps sit
+// in a "Selected" section at the top, moving there (and back) with an animation as they are toggled.
+// AltList is loaded at runtime, so this subclass is made at runtime too.
+#define kCRSelectedTitle CRLocalized(@"Selected")
+
+static NSString *CRAppID(PSSpecifier *specifier) {
+    if (specifier.cellType == PSGroupCell) return nil;
+    return [specifier propertyForKey:@"applicationIdentifier"] ?: specifier.identifier;
+}
+
+static NSSet *CRSelectedApps(PSListController *controller) {
+    id selection = nil;
+    @try { selection = [controller valueForKey:@"_selectedApplications"]; } @catch (NSException *e) {}
+    if ([selection isKindOfClass:[NSSet class]]) return selection;
+    id saved = [controller readPreferenceValue:controller.specifier];
+    return [saved isKindOfClass:[NSArray class]] ? [NSSet setWithArray:saved] : [NSSet set];
+}
+
+// The cell's own checked state: unlike setting the checkmark directly, it survives the cell being
+// redrawn (AltList redraws rows as their icons load)
+static void CRSetChecked(UITableViewCell *cell, BOOL checked) {
+    if ([cell respondsToSelector:@selector(setChecked:)]) [(PSTableCell *)cell setChecked:checked];
+    else cell.accessoryType = checked ? UITableViewCellAccessoryCheckmark : UITableViewCellAccessoryNone;
+}
+
+static BOOL CRIsSelectedGroup(PSSpecifier *specifier) {
+    return specifier.cellType == PSGroupCell && [specifier.name isEqualToString:kCRSelectedTitle];
+}
+
+// Letter section an app belongs to (as AltList groups them)
+static NSString *CRLetterFor(PSSpecifier *specifier) {
+    NSString *name = specifier.name.length ? [[specifier.name substringToIndex:1] uppercaseString] : @"#";
+    unichar c = [name characterAtIndex:0];
+    return (c >= 'A' && c <= 'Z') ? name : @"#";
+}
+
+static NSArray *CRSelectedFirst(PSListController *controller, NSArray<PSSpecifier *> *specifiers) {
+    NSSet *selectedIDs = CRSelectedApps(controller);
+    if (selectedIDs.count == 0) return specifiers;
+    NSMutableArray *selected = [NSMutableArray array], *rest = [NSMutableArray array];
+    for (PSSpecifier *specifier in specifiers) {
+        NSString *app = CRAppID(specifier);
+        if (app && [selectedIDs containsObject:app]) [selected addObject:specifier];
+        else [rest addObject:specifier];
+    }
+    if (selected.count == 0) return specifiers;
+    NSMutableArray *result = [NSMutableArray arrayWithObject:[PSSpecifier groupSpecifierWithName:kCRSelectedTitle]];
+    [result addObjectsFromArray:[selected sortedArrayUsingComparator:^NSComparisonResult(PSSpecifier *a, PSSpecifier *b) {
+        return [a.name localizedCaseInsensitiveCompare:b.name];
+    }]];
+    for (NSUInteger i = 0; i < rest.count; i++) { // drop letter groups left empty
+        PSSpecifier *specifier = rest[i];
+        BOOL emptyGroup = specifier.cellType == PSGroupCell && (i + 1 == rest.count || ((PSSpecifier *)rest[i + 1]).cellType == PSGroupCell);
+        if (!emptyGroup) [result addObject:specifier];
+    }
+    return result;
+}
+
+// Inserts an app in its section (creating the section if needed), sorted by name. Positions are always
+// taken from the current list: each insert or remove can replace PSListController's array.
+static void CRInsertSorted(PSListController *controller, PSSpecifier *app, BOOL intoSelected) {
+    NSMutableArray<PSSpecifier *> *all = [controller valueForKey:@"_specifiers"];
+    NSString *title = intoSelected ? kCRSelectedTitle : CRLetterFor(app);
+    NSUInteger groupIndex = NSNotFound;
+    for (NSUInteger i = 0; i < all.count; i++) {
+        if (all[i].cellType == PSGroupCell && [all[i].name isEqualToString:title]) { groupIndex = i; break; }
+    }
+    if (groupIndex == NSNotFound) { // new section: Selected first, letters in order after it
+        NSUInteger at = all.count;
+        if (intoSelected) at = 0;
+        else for (NSUInteger i = 0; i < all.count; i++) {
+            if (all[i].cellType == PSGroupCell && !CRIsSelectedGroup(all[i]) && [all[i].name compare:title] == NSOrderedDescending) { at = i; break; }
+        }
+        PSSpecifier *newGroup = [PSSpecifier groupSpecifierWithName:title];
+        [controller insertSpecifier:newGroup atIndex:at animated:YES];
+        all = [controller valueForKey:@"_specifiers"]; // inserting can replace the array: read it again
+        groupIndex = [all indexOfObject:newGroup];
+        if (groupIndex == NSNotFound) return;
+    }
+    NSUInteger at = groupIndex + 1;
+    while (at < all.count && all[at].cellType != PSGroupCell && [all[at].name localizedCaseInsensitiveCompare:app.name] == NSOrderedAscending) at++;
+    [controller insertSpecifier:app atIndex:at animated:YES];
+}
+
+static void CRToggleApp(PSListController *controller, PSSpecifier *app, Class base) {
+    NSString *appID = CRAppID(app);
+    BOOL select = ![CRSelectedApps(controller) containsObject:appID];
+    struct objc_super sup = {controller, base};
+    ((void (*)(struct objc_super *, SEL, NSNumber *, PSSpecifier *))objc_msgSendSuper)(&sup, @selector(setApplicationEnabled:specifier:), @(select), app);
+
+    UITableView *table = controller.table;
+    UISearchController *search = nil;
+    @try { search = [controller valueForKey:@"_searchController"]; } @catch (NSException *e) {}
+    if (search.isActive) { // searching: just the checkmark, results stay where they are
+        NSIndexPath *path = [controller indexPathForSpecifier:app];
+        if (path) CRSetChecked([table cellForRowAtIndexPath:path], select);
+        return;
+    }
+
+    // Move: out of its section (dropping the section if left empty), into the other, in one animation
+    NSMutableArray<PSSpecifier *> *all = [controller valueForKey:@"_specifiers"];
+    NSUInteger index = [all indexOfObject:app];
+    if (index == NSNotFound) return;
+    [table beginUpdates];
+    PSSpecifier *group = nil;
+    for (NSInteger i = index - 1; i >= 0; i--) if (all[i].cellType == PSGroupCell) { group = all[i]; break; }
+    BOOL alone = group && (index + 1 == all.count || all[index + 1].cellType == PSGroupCell) && all[index - 1] == group;
+    [controller removeSpecifier:app animated:YES];
+    if (alone) [controller removeSpecifier:group animated:YES];
+    CRInsertSorted(controller, app, select);
+    [table endUpdates];
+}
+
+static void CRRegisterSelectedFirstListController(void) {
+    Class base = NSClassFromString(@"ATLApplicationListMultiSelectionController");
+    if (!base || NSClassFromString(@"CRSelectedFirstListController")) return;
+    Class cls = objc_allocateClassPair(base, "CRSelectedFirstListController", 0);
+    if (!cls) return;
+
+    // The list as AltList builds it, with the selected apps moved to the top
+    SEL sel = @selector(specifiers);
+    IMP imp = imp_implementationWithBlock(^NSArray *(PSListController *controller) {
+        struct objc_super sup = {controller, base};
+        NSArray *specifiers = ((NSArray *(*)(struct objc_super *, SEL))objc_msgSendSuper)(&sup, sel);
+        if (specifiers.count && objc_getAssociatedObject(controller, @selector(specifiers)) != specifiers) {
+            NSArray *ordered = CRSelectedFirst(controller, specifiers);
+            if (ordered != specifiers) {
+                [controller setValue:[ordered mutableCopy] forKey:@"_specifiers"];
+                specifiers = [controller valueForKey:@"_specifiers"];
+            }
+            objc_setAssociatedObject(controller, @selector(specifiers), specifiers, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        }
+        return specifiers;
+    });
+    class_addMethod(cls, sel, imp, method_getTypeEncoding(class_getInstanceMethod(base, sel)));
+
+    // Plain rows instead of switches
+    SEL cellType = @selector(cellTypeForApplicationCells);
+    if (class_getInstanceMethod(base, cellType)) {
+        class_addMethod(cls, cellType, imp_implementationWithBlock(^NSInteger(id controller) { return PSListItemCell; }),
+                        method_getTypeEncoding(class_getInstanceMethod(base, cellType)));
+    }
+
+    // Checkmark on selected apps
+    SEL cellForRow = @selector(tableView:cellForRowAtIndexPath:);
+    class_addMethod(cls, cellForRow, imp_implementationWithBlock(^UITableViewCell *(PSListController *controller, UITableView *table, NSIndexPath *path) {
+        struct objc_super sup = {controller, base};
+        UITableViewCell *cell = ((UITableViewCell *(*)(struct objc_super *, SEL, UITableView *, NSIndexPath *))objc_msgSendSuper)(&sup, cellForRow, table, path);
+        NSString *app = CRAppID([controller specifierAtIndexPath:path]);
+        if (app) CRSetChecked(cell, [CRSelectedApps(controller) containsObject:app]);
+        return cell;
+    }), method_getTypeEncoding(class_getInstanceMethod(base, cellForRow)));
+
+    // Tapping an app toggles it
+    SEL didSelect = @selector(tableView:didSelectRowAtIndexPath:);
+    class_addMethod(cls, didSelect, imp_implementationWithBlock(^(PSListController *controller, UITableView *table, NSIndexPath *path) {
+        PSSpecifier *specifier = [controller specifierAtIndexPath:path];
+        if (!CRAppID(specifier)) {
+            struct objc_super sup = {controller, base};
+            ((void (*)(struct objc_super *, SEL, UITableView *, NSIndexPath *))objc_msgSendSuper)(&sup, didSelect, table, path);
+            return;
+        }
+        [table deselectRowAtIndexPath:path animated:YES];
+        CRToggleApp(controller, specifier, base);
+    }), method_getTypeEncoding(class_getInstanceMethod(base, didSelect)));
+
+    objc_registerClassPair(cls);
+}
+
 + (void)initialize {
     if (self == [CRRootListController class]) {
         dlopen(ROOT_PATH("/Library/Frameworks/AltList.framework/AltList"), RTLD_NOW);
+        CRRegisterSelectedFirstListController();
     }
+}
+
+// The app list counts are refreshed when coming back from a list, when the settings app comes back to
+// the front, and when the tweak changes a setting itself (long press to blacklist). Reloading the
+// specifiers does not redraw these cells, so they are refreshed directly.
+- (void)refreshCounts {
+    for (UITableViewCell *cell in self.table.visibleCells) {
+        if ([cell isKindOfClass:NSClassFromString(@"CRCountLinkCell")]) [(PSTableCell *)cell refreshCellContentsWithSpecifier:((PSTableCell *)cell).specifier];
+    }
+}
+
+static void CRSettingsChanged(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef info) {
+    CRRootListController *controller = (__bridge CRRootListController *)observer;
+    dispatch_async(dispatch_get_main_queue(), ^{ [controller refreshCounts]; });
+}
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(refreshCounts) name:UIApplicationDidBecomeActiveNotification object:nil];
+    CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), (__bridge const void *)self, CRSettingsChanged,
+                                    CFSTR("com.goldenappleguy.confirmrotatereborn/changed"), NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+}
+
+- (void)dealloc {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+    CFNotificationCenterRemoveEveryObserver(CFNotificationCenterGetDarwinNotifyCenter(), (__bridge const void *)self);
+}
+
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+    [self refreshCounts];
 }
 
 - (NSArray *)specifiers {
@@ -142,7 +352,7 @@ static Class CRPaddedSliderClass(Class base) {
 - (NSString *)textForValue:(float)value {
     NSString *zeroText = [self.specifier propertyForKey:@"zeroText"]; // e.g. "Off" for a setting where 0 disables it
     if (zeroText && round(value) == 0) return zeroText;
-    NSString *suffix = [self.specifier propertyForKey:@"valueSuffix"] ?: @"";
+    NSString *suffix = CRLocalized([self.specifier propertyForKey:@"valueSuffix"] ?: @"");
     return [NSString stringWithFormat:@"%.0f%@", round(value), suffix];
 }
 
@@ -193,6 +403,7 @@ static Class CRPaddedSliderClass(Class base) {
         [slider setNeedsLayout];
     }
     NSString *inlineText = [self.specifier propertyForKey:@"inlineLabel"];
+    if (inlineText.length) inlineText = CRLocalized(inlineText);
     if (inlineText.length) {
         if (!_inlineLabel) {
             _inlineLabel = [UILabel new];
@@ -236,17 +447,17 @@ static Class CRPaddedSliderClass(Class base) {
     if (!slider || !presenter) return;
 
     float min = [[self.specifier propertyForKey:@"min"] floatValue], max = [[self.specifier propertyForKey:@"max"] floatValue];
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Enter Value"
-        message:[NSString stringWithFormat:@"From %.0f to %@.", min, [self textForValue:max]]
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:CRLocalized(@"Enter Value")
+        message:[NSString stringWithFormat:CRLocalized(@"From %1$@ to %2$@."), [NSString stringWithFormat:@"%.0f", min], [self textForValue:max]]
         preferredStyle:UIAlertControllerStyleAlert];
     [alert addTextFieldWithConfigurationHandler:^(UITextField *field) {
         field.keyboardType = UIKeyboardTypeNumberPad;
         field.text = [NSString stringWithFormat:@"%.0f", round(slider.value)];
         field.clearButtonMode = UITextFieldViewModeWhileEditing;
     }];
-    [alert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
+    [alert addAction:[UIAlertAction actionWithTitle:CRLocalized(@"Cancel") style:UIAlertActionStyleCancel handler:nil]];
     __weak typeof(self) weakSelf = self;
-    [alert addAction:[UIAlertAction actionWithTitle:@"Set" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+    [alert addAction:[UIAlertAction actionWithTitle:CRLocalized(@"Set") style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
         NSString *text = alert.textFields.firstObject.text;
         if (text.length == 0) return;
         float value = MAX(min, MIN(max, (float)round(text.doubleValue)));
@@ -254,6 +465,48 @@ static Class CRPaddedSliderClass(Class base) {
         [weakSelf controlChanged:slider]; // saves through the specifier, as dragging does
     }]];
     [presenter presentViewController:alert animated:YES completion:nil];
+}
+
+@end
+
+// App list row that shows how many apps the list holds, at the trailing end beside the chevron (a stray
+// whitelisted app is easy to miss otherwise). The row's own getter must stay as it is, since AltList
+// reads the list through it.
+@interface CRCountLinkCell : PSTableCell
+@end
+
+@implementation CRCountLinkCell {
+    UILabel *_countLabel;
+}
+
+- (void)refreshCellContentsWithSpecifier:(PSSpecifier *)specifier {
+    [super refreshCellContentsWithSpecifier:specifier];
+    if (!_countLabel) {
+        _countLabel = [UILabel new];
+        _countLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleBody];
+        _countLabel.textColor = [UIColor secondaryLabelColor];
+        _countLabel.textAlignment = NSTextAlignmentRight;
+        [self.contentView addSubview:_countLabel];
+    }
+    // From the shared settings store, which also sees changes made from SpringBoard; the page's own read
+    // as a fallback
+    NSString *key = [specifier propertyForKey:@"key"], *domain = [specifier propertyForKey:@"defaults"];
+    id apps = nil;
+    if (key && domain) {
+        CFPreferencesAppSynchronize((__bridge CFStringRef)domain);
+        apps = CFBridgingRelease(CFPreferencesCopyAppValue((__bridge CFStringRef)key, (__bridge CFStringRef)domain));
+    }
+    if (!apps && [specifier.target respondsToSelector:@selector(readPreferenceValue:)]) apps = [specifier.target readPreferenceValue:specifier];
+    NSUInteger count = [apps isKindOfClass:[NSArray class]] ? [apps count] : 0;
+    _countLabel.text = [NSString stringWithFormat:@"%lu", (unsigned long)count];
+    [self setNeedsLayout];
+}
+
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    CGRect bounds = self.contentView.bounds;
+    CGFloat width = ceil([_countLabel sizeThatFits:bounds.size].width);
+    _countLabel.frame = CGRectMake(bounds.size.width - self.contentView.layoutMargins.right - width, 0, width, bounds.size.height);
 }
 
 @end

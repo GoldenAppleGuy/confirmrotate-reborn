@@ -4,15 +4,16 @@ Asks before the screen rotates. Turn the phone and a button appears, upright for
 
 ## Features
 
-- **Confirm button**: appears beside the volume buttons when the phone is turned, showing the rotation lock symbol and "Rotate?". Haptic feedback on tap.
+- **Confirm button**: appears beside the volume buttons when the phone is turned, showing the rotation lock symbol and "Rotate?". Haptic feedback on tap (can be turned off).
 - **Only when it can rotate**: no button for apps that don't support the new orientation, or on the home and lock screens.
 - **Auto-rotate** (optional): a ring fills around the button and the screen rotates by itself after a set delay. With Tap to Cancel, the button reads "Cancel?" and a tap keeps the screen as it is; turning back always cancels.
 - **Gestures**: long press the button to rotate and add the app to the blacklist; swipe it away to dismiss it.
 - **Portrait on app switch** (optional): apps open in portrait, decided before they appear (no visible turn).
-- **Whitelist / blacklist**: limit the tweak to some apps, or let some apps rotate freely.
+- **Whitelist / blacklist**: limit the tweak to some apps, or let some apps rotate freely. The settings show how many apps each list holds, and the lists keep selected apps at the top.
 - **Always show in**: for apps such as YouTube that handle rotation themselves while declaring portrait only.
 - **Appearance**: circle or rounded square, icon color, size, opacity, position and hide delay.
-- **Control Center toggle** (needs CCSupport): turn the tweak on and off.
+- **Control Center toggle** (needs CCSupport): turn the tweak on and off. Its own icon (a phone with a rotate arrow, teal when on), so it isn't mistaken for the system rotation lock.
+- **Translations**: German, Spanish, French, Italian, Japanese, Korean, Dutch, Portuguese (Brazil), Russian, Chinese (Simplified and Traditional), Turkish and Polish.
 - The system rotation lock still wins: while it is on, nothing changes.
 
 ## Requirements
@@ -39,6 +40,7 @@ Or one at a time: `make package` (rootless) or `make package THEOS_PACKAGE_SCHEM
 | `Tweak.x` | The SpringBoard tweak |
 | `prefs/` | Settings page (PreferenceLoader bundle, loads AltList for the app lists) |
 | `ccmodule/` | Control Center toggle (CCSupport bundle) |
+| `prefs/Localization/generate.py` | Translations: writes each language's `Root.strings` (settings) and `Tweak.strings` (button); run after changing any text |
 | `layout/` | PreferenceLoader entry |
 
 ## How it works

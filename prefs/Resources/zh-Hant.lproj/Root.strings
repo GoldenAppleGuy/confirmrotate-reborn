@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>%</key>
+	<string>%</string>
+	<key>Always Show In</key>
+	<string>永遠顯示於</string>
+	<key>Appearance</key>
+	<string>外觀</string>
+	<key>Apps</key>
+	<string>App</string>
+	<key>Auto-Rotate</key>
+	<string>自動旋轉</string>
+	<key>Auto-Rotate rotates after a delay while a ring fills around the button, in place of Hide After; with Tap to Cancel, a tap keeps the screen as it is. Long press the button to rotate and blacklist the app; swipe it to dismiss.</key>
+	<string>自動旋轉會在按鈕周圍的圓環填滿後旋轉，取代「隱藏時間」。開啟「點一下取消」後，點一下按鈕會保持螢幕不變。按住按鈕可旋轉並將 App 加入黑名單；滑動可將其關閉。</string>
+	<key>Behavior</key>
+	<string>行為</string>
+	<key>Blacklisted Apps</key>
+	<string>黑名單 App</string>
+	<key>Blue</key>
+	<string>藍色</string>
+	<key>Cancel</key>
+	<string>取消</string>
+	<key>Circle</key>
+	<string>圓形</string>
+	<key>Default</key>
+	<string>預設</string>
+	<key>Delay</key>
+	<string>延遲</string>
+	<key>Enabled</key>
+	<string>啟用</string>
+	<key>Enter Value</key>
+	<string>輸入數值</string>
+	<key>From %1$@ to %2$@.</key>
+	<string>%1$@ 至 %2$@</string>
+	<key>Green</key>
+	<string>綠色</string>
+	<key>Haptic Feedback</key>
+	<string>觸覺回饋</string>
+	<key>Hide After</key>
+	<string>隱藏時間</string>
+	<key>Icon Color</key>
+	<string>圖像顏色</string>
+	<key>Opacity</key>
+	<string>不透明度</string>
+	<key>Orange</key>
+	<string>橙色</string>
+	<key>Pink</key>
+	<string>粉紅色</string>
+	<key>Portrait on App Switch</key>
+	<string>切換 App 時直向</string>
+	<key>Position</key>
+	<string>位置</string>
+	<key>Position is the distance from the status bar, along the side of the screen.</key>
+	<string>位置是沿螢幕側邊與狀態列的距離。</string>
+	<key>Purple</key>
+	<string>紫色</string>
+	<key>Red</key>
+	<string>紅色</string>
+	<key>Rounded Square</key>
+	<string>圓角方形</string>
+	<key>Selected</key>
+	<string>已選取</string>
+	<key>Set</key>
+	<string>設定</string>
+	<key>Size</key>
+	<string>大小</string>
+	<key>Tap to Cancel</key>
+	<string>點一下取消</string>
+	<key>Teal</key>
+	<string>藍綠色</string>
+	<key>Whitelisted Apps</key>
+	<string>白名單 App</string>
+	<key>Whitelisted apps are the only ones the tweak acts in. Blacklisted apps rotate freely, as without the tweak. Always Show In is for apps that handle rotation themselves.</key>
+	<string>插件只在白名單 App 中生效。黑名單 App 可自由旋轉，如同未安裝插件。「永遠顯示於」適用於自行處理旋轉的 App。</string>
+	<key>Yellow</key>
+	<string>黃色</string>
+	<key>px</key>
+	<string>px</string>
+	<key>s</key>
+	<string>秒</string>
+</dict>
+</plist>
