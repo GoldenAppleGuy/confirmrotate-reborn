@@ -15,8 +15,7 @@
 // with Tap to Cancel as well, it reads "Cancel?" instead and a tap keeps the screen as it is.
 //
 // The Control Center lock still wins: while it is on, nothing is held and no button shows.
-// Settings: TweakSettings > ConfirmRotate Reborn (domain com.goldenappleguy.confirmrotatereborn; settings from
-// the first versions, under com.goldenappleguy.confirmrotate17, are copied over once).
+// Settings: TweakSettings or Settings > ConfirmRotate Reborn (domain com.goldenappleguy.confirmrotatereborn).
 
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
@@ -24,7 +23,6 @@
 #import <rootless.h>
 
 #define CR_PREFS_DOMAIN CFSTR("com.goldenappleguy.confirmrotatereborn")
-#define CR_OLD_PREFS_DOMAIN CFSTR("com.goldenappleguy.confirmrotate17")
 #define CR_PREFS_CHANGED "com.goldenappleguy.confirmrotatereborn/changed"
 #define CR_DEBUG_FLAG @"/var/mobile/Documents/confirmrotate.debug" // present: write the log below
 #define CR_DEBUG_LOG @"/var/mobile/Documents/confirmrotate.log"
@@ -208,26 +206,6 @@ static NSSet<NSString *> *CRPrefAppSet(CFStringRef key) {
     NSSet *result = [(__bridge id)value isKindOfClass:[NSArray class]] ? [NSSet setWithArray:(__bridge NSArray *)value] : [NSSet set];
     if (value) CFRelease(value);
     return result;
-}
-
-// Settings saved by the first versions (old domain) are copied to the new one, once
-static void CRMigrateOldPrefs(void) {
-    CFArrayRef newKeys = CFPreferencesCopyKeyList(CR_PREFS_DOMAIN, kCFPreferencesCurrentUser, kCFPreferencesAnyHost);
-    BOOL hasNew = newKeys && CFArrayGetCount(newKeys) > 0;
-    if (newKeys) CFRelease(newKeys);
-    if (hasNew) return;
-    CFArrayRef oldKeys = CFPreferencesCopyKeyList(CR_OLD_PREFS_DOMAIN, kCFPreferencesCurrentUser, kCFPreferencesAnyHost);
-    if (!oldKeys) return;
-    for (NSString *key in (__bridge NSArray *)oldKeys) {
-        CFPropertyListRef value = CFPreferencesCopyAppValue((__bridge CFStringRef)key, CR_OLD_PREFS_DOMAIN);
-        if (value) {
-            CFPreferencesSetAppValue((__bridge CFStringRef)key, value, CR_PREFS_DOMAIN);
-            CFRelease(value);
-        }
-    }
-    CFRelease(oldKeys);
-    CFPreferencesAppSynchronize(CR_PREFS_DOMAIN);
-    CRLog(@"copied settings from the old domain");
 }
 
 static BOOL CRIsExcluded(NSString *bundle) {
@@ -764,7 +742,6 @@ static NSString *CRCurrentFrontBundle(void) {
 
 - (void)start {
     if (gLegacy) gRawDevice = (UIDeviceOrientation)[(SpringBoard *)[UIApplication sharedApplication] rawDeviceOrientationIgnoringOrientationLocks];
-    CRMigrateOldPrefs();
     CRLoadPrefs();
     CRSetFrontBundle(CRCurrentFrontBundle());
     CRLogPrefs();

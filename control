@@ -7,6 +7,3 @@ Author: GoldenAppleGuy
 Section: Tweaks
 Depends: mobilesubstrate, preferenceloader, com.opa334.altlist, firmware (>= 15.0)
 Recommends: com.opa334.ccsupport
-Conflicts: com.goldenappleguy.confirmrotate17
-Replaces: com.goldenappleguy.confirmrotate17
-Provides: com.goldenappleguy.confirmrotate17
