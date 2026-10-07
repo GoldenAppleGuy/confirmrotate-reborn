@@ -102,7 +102,7 @@
     CGFloat needed = 0;
     for (NSString *key in @[@"min", @"max"]) {
         NSString *text = [self textForValue:[[self.specifier propertyForKey:key] floatValue]];
-        needed = MAX(needed, ceil([text sizeWithAttributes:@{NSFontAttributeName: stock.font}].width) + 2);
+        needed = MAX(needed, ceil([text sizeWithAttributes:@{NSFontAttributeName: stock.font}].width) + 4);
     }
     CGRect frame = stock.frame;
     CGFloat extra = MAX(0, needed - frame.size.width);
@@ -113,7 +113,7 @@
     UISlider *slider = [self slider];
     CGRect labelInSlider = [_valueLabel.superview convertRect:frame toView:slider.superview];
     CGRect sliderFrame = slider.frame;
-    CGFloat overlap = CGRectGetMaxX(sliderFrame) + 6 - CGRectGetMinX(labelInSlider);
+    CGFloat overlap = CGRectGetMaxX(sliderFrame) + 14 - CGRectGetMinX(labelInSlider); // the knob draws past the frame
     if (overlap > 0) {
         sliderFrame.size.width -= overlap;
         slider.frame = sliderFrame;
