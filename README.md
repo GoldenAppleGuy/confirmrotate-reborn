@@ -56,3 +56,7 @@ Create `/var/mobile/Documents/confirmrotate.debug` on the device and respring; t
 ## Settings
 
 Stored in the `com.goldenappleguy.confirmrotatereborn` domain. Settings from the first test versions (`com.goldenappleguy.confirmrotate17`) are copied over once, and the package replaces that earlier package.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
