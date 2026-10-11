@@ -18,10 +18,10 @@ Asks before the screen rotates. Turn the phone and a button appears, upright for
 
 ## Requirements
 
-- iOS 15 to 17, jailbroken (rootless, roothide or rootful). Tested on iOS 17.0 (iPhone 15, Dopamine) and iOS 15.4.1 (iPhone 12 mini, Dopamine). iOS 16 and roothide are untested.
+- iOS 15 to 18, jailbroken (rootless, roothide or rootful). Tested on iOS 17.0 (iPhone 15, Dopamine) and iOS 15.4.1 (iPhone 12 mini, Dopamine); iOS 16.1, 18.0 and 18.6 in the simulator only. roothide is untested.
 - PreferenceLoader and AltList. CCSupport for the Control Center toggle.
 
-The tweak picks its hooks at startup: iOS 17's traits pipeline, or the older path that iOS 15 uses (see How it works).
+The tweak picks its hooks at startup: iOS 17's traits pipeline (also used on iOS 18), iOS 16's earlier version of it, or the older path that iOS 15 uses (see How it works).
 
 ## Building
 
@@ -32,6 +32,17 @@ Needs [Theos](https://theos.dev). `./build.sh` builds all three packages into `p
 - `*_iphoneos-arm.deb`: rootful
 
 Or one at a time: `make package` (rootless), `make package THEOS=<roothide Theos> THEOS_PACKAGE_SCHEME=roothide` (roothide) or `make package THEOS_PACKAGE_SCHEME=` (rootful).
+
+### Testing in the simulator
+
+`make SIM=1` builds the tweak alone for the iOS Simulator (x86_64, hooks through the ObjC runtime, no Substrate). Load it into a simulator's SpringBoard the way simject does:
+
+```
+xcrun simctl spawn <device> launchctl setenv DYLD_INSERT_LIBRARIES <path>/ConfirmRotateReborn.dylib
+xcrun simctl spawn <device> launchctl stop com.apple.SpringBoard
+```
+
+It only acts in SpringBoard and logs to `/tmp/ConfirmRotateReborn/`. Turn the simulator with Device > Rotate Left/Right. iOS 18 simulators leave the pipeline's orientation events off; in this build, Record Rotation Test (`notifyutil -p com.goldenappleguy.confirmrotatereborn/rotationtest`) switches them on and records for 10 minutes.
 
 ## Publishing
 
@@ -59,6 +70,8 @@ Every version is on the [releases page](https://github.com/GoldenAppleGuy/confir
 
 On iOS 17, SpringBoard decides orientation in its traits pipeline, which reads the device orientation from `-[SBTraitsEmbeddedDisplayPipelineManager inputs]`. The tweak replaces that orientation with a held one, so turning the phone changes nothing. Confirming moves the hold to the new orientation and asks the pipeline to run again (`_noteInputsNeedUpdateAnimated:reason:`). The physical orientation is read from the same inputs, since `UIDevice` in SpringBoard follows the held orientation. App switches are handled in `layoutStateTransitionCoordinator:transitionDidBeginWithTransitionContext:`, before the new app is laid out.
 
+iOS 18 works the same way. iOS 16 has an earlier version of the pipeline whose inputs don't carry the device orientation: a turn reaches `-[SBTraitsEmbeddedDisplayPipelineManager accelerometer:didChangeDeviceOrientation:]` and goes straight on to SpringBoard's orientation update. While holding, the tweak passes the held orientation on instead; confirming calls it with the new one.
+
 iOS 15 has no such pipeline: every orientation change reaches SpringBoard through `-[SpringBoard _deviceOrientationChanged:]`. While holding, the tweak lets only the held orientation through it, and confirming passes the new orientation through it. Physical orientation changes still arrive there while holding (the system's own lock overrides stop them, so those can't be used). App switches come from `-[SBLayoutStateTransitionCoordinator beginTransitionForWorkspaceTransaction:]`. On iOS 15, switching back to an app can occasionally be slow to accept touches for about a second with the tweak enabled; it was left as it is.
 
 ## Diagnostics
@@ -67,7 +80,7 @@ The Diagnostics section in settings:
 
 - **Status**: Active, Off, Paused, Unsupported (no known way to hook this iOS version) or Not Running.
 - **Detailed Logging**: logs every turn, button and app switch, not just startup and errors.
-- **Record Rotation Test**: for 30 seconds, logs what SpringBoard itself does while the phone is turned.
+- **Record Rotation Test**: for 30 seconds, logs what SpringBoard itself does while the phone is turned, and whether the pipeline is receiving turns.
 - **Share Log**: a report for bug reports with the log, settings, device, iOS version, jailbreak type and support packages (not the list of installed tweaks), plus the latest SpringBoard crash report and a one-time survey of SpringBoard's rotation classes.
 - **Try Again**: shown when the crash guard has paused the tweak.
 

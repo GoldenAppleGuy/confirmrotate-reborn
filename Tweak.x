@@ -31,15 +31,24 @@
 #define CR_VERSION "?"
 #endif
 // Log and status, shared through the settings page (Diagnostics > Share Log)
+#if TARGET_OS_SIMULATOR // simulator test build (make SIM=1): /var/mobile isn't there, so a host folder
+#define CR_LOG_DIR @"/tmp/ConfirmRotateReborn"
+#define CR_GUARD_FILE "/tmp/ConfirmRotateReborn/guard"
+#else
 #define CR_LOG_DIR @"/var/mobile/Documents/ConfirmRotateReborn"
+#define CR_GUARD_FILE "/var/mobile/Documents/ConfirmRotateReborn/guard" // crash-loop guard (plain text, see CRCrashGuardTripped)
+#endif
 #define CR_LOG_FILE CR_LOG_DIR @"/log.txt"
 #define CR_STATUS_FILE CR_LOG_DIR @"/status.plist"
-#define CR_GUARD_FILE "/var/mobile/Documents/ConfirmRotateReborn/guard" // crash-loop guard (plain text, see CRCrashGuardTripped)
 #define CR_LOG_LIMIT (256 * 1024)          // bytes; the oldest half is dropped beyond this
 #define CR_RESPRING_NOTIFICATION "com.goldenappleguy.confirmrotatereborn/respring"
 #define CR_ROTATION_TEST_NOTIFICATION "com.goldenappleguy.confirmrotatereborn/rotationtest"
 #define CR_SURVEY_FILE CR_LOG_DIR @"/runtime.txt"
+#if TARGET_OS_SIMULATOR
+#define CR_ROTATION_TEST_SECONDS 600.0 // simulator test build: long enough to turn it by hand
+#else
 #define CR_ROTATION_TEST_SECONDS 30.0
+#endif
 
 @interface SBOrientationLockManager : NSObject
 + (instancetype)sharedInstance;
@@ -88,6 +97,7 @@
 
 @interface SBTraitsEmbeddedDisplayPipelineManager : SBTraitsPipelineManager
 - (void)_noteInputsNeedUpdateAnimated:(BOOL)animated reason:(NSString *)reason;
+- (void)accelerometer:(id)accelerometer didChangeDeviceOrientation:(long long)orientation; // iOS 16 path
 @end
 
 @interface SBSceneManagerCoordinator : NSObject
@@ -255,7 +265,10 @@ static __weak SBTraitsPipelineManager *gPipelineManager; // iOS 17 traits pipeli
 static UIInterfaceOrientation gHeld;
 static CFAbsoluteTime gHeldAt;   // when the hold last moved
 static BOOL gLegacy;   // iOS 15 path (no traits pipeline): holds by filtering -[SpringBoard _deviceOrientationChanged:]
-static BOOL gPassing;  // iOS 15 path: our own call into _deviceOrientationChanged:, let it through
+static BOOL gPipelineEvents; // iOS 16 path (earlier traits pipeline): holds by filtering the pipeline manager's
+                             // accelerometer:didChangeDeviceOrientation:, which -inputs doesn't reflect there
+static __weak id gAccelerometer; // iOS 16 path: the pipeline manager's accelerometer, for our own calls
+static BOOL gPassing;  // iOS 15/16 paths: our own call into the hooked method, let it through
 
 // Settings
 static BOOL gEnabled = YES;
@@ -398,9 +411,46 @@ static UIInterfaceOrientation CRActiveOrientation(void) {
 }
 
 // Makes a changed hold take effect without the phone moving: iOS 17 runs the traits pipeline again;
-// the iOS 15 path passes the orientation SpringBoard should now have (the held one, or the physical
+// the iOS 16 path passes the orientation through the pipeline manager's accelerometer callback; the iOS 15 path passes the orientation SpringBoard should now have (the held one, or the physical
+// For the log: whether the traits pipeline is set up to receive turns (private API, so only
+// boolean getters that exist are called)
+static NSString *CRBoolGetter(id object, NSString *name) {
+    SEL selector = NSSelectorFromString(name);
+    Method method = object ? class_getInstanceMethod([object class], selector) : NULL;
+    char type[8] = {0};
+    if (method) method_getReturnType(method, type, sizeof(type));
+    if (!method || (strcmp(type, "B") != 0 && strcmp(type, "c") != 0) || method_getNumberOfArguments(method) != 2) return nil;
+    return [NSString stringWithFormat:@"%@=%d", name, ((BOOL (*)(id, SEL))objc_msgSend)(object, selector)];
+}
+
+static NSString *CRPipelineState(void) {
+    id manager = gPipelineManager;
+    if (!manager) return @"pipeline manager not seen yet";
+    NSMutableArray *parts = [NSMutableArray array];
+    for (NSString *name in @[@"_isBacklightOn", @"supportsLiveDeviceRotation"]) {
+        NSString *part = CRBoolGetter(manager, name);
+        if (part) [parts addObject:part];
+    }
+    Ivar ivar = class_getInstanceVariable([manager class], "_accelerometer");
+    id accelerometer = ivar ? object_getIvar(manager, ivar) : nil;
+    if (!accelerometer) [parts addObject:@"no accelerometer"];
+    for (NSString *name in @[@"orientationEventsEnabled", @"accelerometerEventsEnabled", @"passiveOrientationEvents"]) {
+        NSString *part = CRBoolGetter(accelerometer, name);
+        if (part) [parts addObject:part];
+    }
+    return [parts componentsJoinedByString:@", "];
+}
+
 // one when not holding) through _deviceOrientationChanged:.
 static void CRRequestArbitration(void) {
+    if (gPipelineEvents) {
+        long long orientation = (gHolding && !gExcluded) ? gHeld : gRawDevice;
+        if (orientation <= 0 || !gPipelineManager) return;
+        gPassing = YES;
+        [(SBTraitsEmbeddedDisplayPipelineManager *)gPipelineManager accelerometer:gAccelerometer didChangeDeviceOrientation:orientation];
+        gPassing = NO;
+        return;
+    }
     if (gLegacy) {
         long long orientation = (gHolding && !gExcluded) ? gHeld : gRawDevice;
         SpringBoard *springBoard = (SpringBoard *)[UIApplication sharedApplication];
@@ -876,7 +926,8 @@ static NSString *CRCurrentFrontBundle(void) {
     CRLogPrefs();
     if (CREnabled() && !CRUserLocked()) CRHold(CRActiveOrientation());
     gStarted = YES;
-    CRLogInfo(@"started (%@ method, rotation lock %@, orientation %ld)", gLegacy ? @"iOS 15" : @"iOS 17", CRUserLocked() ? @"on" : @"off", (long)gRawDevice);
+    CRLogInfo(@"started (%@ method, rotation lock %@, orientation %ld%@)", gLegacy ? @"iOS 15" : gPipelineEvents ? @"iOS 16" : @"iOS 17",
+              CRUserLocked() ? @"on" : @"off", (long)gRawDevice, gLegacy ? @"" : [@"; pipeline: " stringByAppendingString:CRPipelineState()]);
 }
 
 - (void)prefsChanged {
@@ -1078,7 +1129,28 @@ static id CRInputsWithOrientation(id inputs, long long orientation) {
 %end
 %end
 
-// App switches on iOS 17 (optional: only hooked when the method exists)
+// iOS 16: the traits pipeline exists, but a turn reaches the pipeline manager here and goes straight on to
+// SpringBoard's orientation update, without new -inputs. The physical orientation is recorded; while
+// holding, the held orientation is passed on instead, so the screen stays put.
+%group PipelineEvents
+%hook SBTraitsEmbeddedDisplayPipelineManager
+- (void)accelerometer:(id)accelerometer didChangeDeviceOrientation:(long long)orientation {
+    if (!gPipelineManager) gPipelineManager = self;
+    if (self != gPipelineManager || gPassing) {
+        %orig;
+        return;
+    }
+    if (accelerometer) gAccelerometer = accelerometer;
+    if (orientation != gRawDevice) {
+        gRawDevice = (UIDeviceOrientation)orientation;
+        dispatch_async(dispatch_get_main_queue(), ^{ [[CRController shared] deviceOrientationChanged]; });
+    }
+    %orig(accelerometer, (gHolding && !gExcluded) ? gHeld : orientation);
+}
+%end
+%end
+
+// App switches on iOS 16 and 17 (optional: only hooked when the method exists)
 %group ModernTransitions
 %hook SBTraitsEmbeddedDisplayPipelineManager
 - (void)layoutStateTransitionCoordinator:(id)coordinator transitionDidBeginWithTransitionContext:(SBLayoutStateTransitionContext *)context {
@@ -1199,8 +1271,19 @@ static void CRRotationTestRequested(CFNotificationCenterRef center, void *observ
         static NSUInteger token;
         NSUInteger mine = ++token;
         gTracing = YES;
-        CRLogInfo(@"rotation test: recording for %.0f s (active orientation %ld, physical %ld, holding %d at %ld, rotation lock %@)",
-                  CR_ROTATION_TEST_SECONDS, (long)CRActiveOrientation(), (long)gRawDevice, gHolding, (long)gHeld, CRUserLocked() ? @"on" : @"off");
+        NSString *pipelineState = CRPipelineState();
+#if TARGET_OS_SIMULATOR
+        // Simulator test build: iOS 18 simulators leave the pipeline's orientation events off; switch them on
+        id manager = gPipelineManager;
+        Ivar ivar = manager ? class_getInstanceVariable([manager class], "_accelerometer") : NULL;
+        id accelerometer = ivar ? object_getIvar(manager, ivar) : nil;
+        if ([accelerometer respondsToSelector:@selector(setOrientationEventsEnabled:)]) {
+            if ([CRBoolGetter(accelerometer, @"orientationEventsEnabled") hasSuffix:@"=0"]) pipelineState = [pipelineState stringByAppendingString:@" (simulator: switched on)"];
+            ((void (*)(id, SEL, BOOL))objc_msgSend)(accelerometer, @selector(setOrientationEventsEnabled:), YES);
+        }
+#endif
+        CRLogInfo(@"rotation test: recording for %.0f s (active orientation %ld, physical %ld, holding %d at %ld, rotation lock %@; pipeline: %@)",
+                  CR_ROTATION_TEST_SECONDS, (long)CRActiveOrientation(), (long)gRawDevice, gHolding, (long)gHeld, CRUserLocked() ? @"on" : @"off", pipelineState);
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(CR_ROTATION_TEST_SECONDS * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             if (mine != token) return;
             gTracing = NO;
@@ -1249,7 +1332,7 @@ static NSArray<NSString *> *CRMissing(NSArray<NSArray *> *requirements) {
 static int gUnstableStarts;
 
 static void CRWriteGuard(int unstable, int tripped) {
-    mkdir("/var/mobile/Documents/ConfirmRotateReborn", 0755);
+    mkdir([CR_LOG_DIR fileSystemRepresentation], 0755);
     FILE *file = fopen(CR_GUARD_FILE, "w");
     if (!file) return;
     fprintf(file, "%s %d %d\n", CR_VERSION, unstable, tripped);
@@ -1376,6 +1459,10 @@ static void CRInstallTraceHooks(void) {
 }
 
 %ctor {
+#if TARGET_OS_SIMULATOR
+    // The simulator test build is injected into every simulator process; only SpringBoard gets the tweak
+    if (strcmp(getprogname(), "SpringBoard") != 0) return;
+#endif
     // Only what is safe while SpringBoard is still loading: the crash guard (plain C file calls), the
     // self-check (runtime lookups) and the hooks. Logging, the status file, settings and observers wait
     // for the main queue, which runs once loading is done.
@@ -1408,18 +1495,27 @@ static void CRInstallTraceHooks(void) {
         ![objc_getClass("TRAArbiter") instancesRespondToSelector:@selector(_setNeedsUpdateArbitrationWithReason:animated:)]) {
         [modern addObject:@"a way to re-run the traits pipeline"];
     }
+    NSMutableArray *pipeline = [NSMutableArray array];
+    if (!objc_getClass("SBTraitsEmbeddedDisplayPipelineManager")) [pipeline addObject:@"SBTraitsEmbeddedDisplayPipelineManager"];
+    else if (!CRHasMethod(@"SBTraitsEmbeddedDisplayPipelineManager", @"accelerometer:didChangeDeviceOrientation:", @"v@:@q")) {
+        [pipeline addObject:@"-SBTraitsEmbeddedDisplayPipelineManager accelerometer:didChangeDeviceOrientation:"];
+    }
     NSArray *legacy = CRMissing(@[@[@"SpringBoard", @"_deviceOrientationChanged:"]]);
+    // iOS 15 has no pipeline manager; iOS 16 has one, but without iOS 17's inputs
     NSString *method = nil;
     if (common.count == 0 && modern.count == 0) method = @"iOS 17";
+    else if (common.count == 0 && pipeline.count == 0) method = @"iOS 16";
     else if (common.count == 0 && legacy.count == 0) method = @"iOS 15";
-    NSString *checks = [NSString stringWithFormat:@"self-check: common %@ | iOS 17 method %@ | iOS 15 method %@",
-                        common.count ? [common componentsJoinedByString:@", "] : @"ok",
-                        modern.count ? [@"missing " stringByAppendingString:[modern componentsJoinedByString:@", "]] : @"ok",
-                        legacy.count ? [@"missing " stringByAppendingString:[legacy componentsJoinedByString:@", "]] : @"ok"];
+    NSString *(^result)(NSArray *) = ^NSString *(NSArray *missing) {
+        return missing.count ? [@"missing " stringByAppendingString:[missing componentsJoinedByString:@", "]] : @"ok";
+    };
+    NSString *checks = [NSString stringWithFormat:@"self-check: common %@ | iOS 17 method %@ | iOS 16 method %@ | iOS 15 method %@",
+                        common.count ? [common componentsJoinedByString:@", "] : @"ok", result(modern), result(pipeline), result(legacy)];
 
     if (!method) {
         NSMutableArray *missing = [common mutableCopy];
         [missing addObjectsFromArray:modern];
+        [missing addObjectsFromArray:pipeline];
         [missing addObjectsFromArray:legacy];
         dispatch_async(dispatch_get_main_queue(), ^{
             logLoaded();
@@ -1433,6 +1529,7 @@ static void CRInstallTraceHooks(void) {
         return;
     }
     gLegacy = [method isEqualToString:@"iOS 15"];
+    gPipelineEvents = [method isEqualToString:@"iOS 16"];
 
     NSMutableArray *optionalMissing = [NSMutableArray array];
     if ([objc_getClass("SBOrientationLockManager") instancesRespondToSelector:@selector(lock)] &&
@@ -1443,7 +1540,8 @@ static void CRInstallTraceHooks(void) {
         if ([objc_getClass("SBLayoutStateTransitionCoordinator") instancesRespondToSelector:@selector(beginTransitionForWorkspaceTransaction:)]) %init(LegacyTransitions);
         else [optionalMissing addObject:@"app switch hook"];
     } else {
-        %init(Modern);
+        if (gPipelineEvents) %init(PipelineEvents);
+        else %init(Modern);
         if ([objc_getClass("SBTraitsEmbeddedDisplayPipelineManager") instancesRespondToSelector:@selector(layoutStateTransitionCoordinator:transitionDidBeginWithTransitionContext:)]) %init(ModernTransitions);
         else [optionalMissing addObject:@"app switch hook"];
     }

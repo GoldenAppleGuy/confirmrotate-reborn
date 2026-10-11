@@ -26,7 +26,7 @@
         {
           "class": "DepictionTableTextView",
           "title": "Compatibility",
-          "text": "iOS 15 – 17 (rootless, roothide and rootful)"
+          "text": "iOS 15 – 18 (rootless, roothide and rootful)"
         },
         {
           "class": "DepictionTableTextView",
@@ -44,6 +44,15 @@
       "tabname": "Changelog",
       "class": "DepictionStackView",
       "views": [
+        {
+          "class": "DepictionSubheaderView",
+          "title": "1.0.3",
+          "useBoldText": true
+        },
+        {
+          "class": "DepictionMarkdownView",
+          "markdown": "- iOS 16 support: turning the phone now shows the button instead of rotating straight away.\n- iOS 18 support (tested in the simulator).\n- The log now shows whether SpringBoard is receiving turns, to help with bug reports."
+        },
         {
           "class": "DepictionSubheaderView",
           "title": "1.0.2",
