@@ -11,7 +11,8 @@ Asks before the screen rotates. Turn the phone and a button appears, upright for
 - **Portrait on app switch** (optional): apps open in portrait, decided before they appear (no visible turn).
 - **Whitelist / blacklist**: limit the tweak to some apps, or let some apps rotate freely. The settings show how many apps each list holds, and the lists keep selected apps at the top.
 - **Always show in**: for apps such as YouTube that handle rotation themselves while declaring portrait only.
-- **Appearance**: circle or rounded square, icon color, size, opacity, position and hide delay.
+- **Timing**: how long the phone has to stay turned before the button appears (0 to 3 seconds), and how long it stays.
+- **Appearance**: circle or rounded square, light or dark (or following the system), icon color, size, opacity and position.
 - **Control Center toggle** (needs CCSupport): turn the tweak on and off. Its own icon (a phone with a rotate arrow, teal when on), so it isn't mistaken for the system rotation lock.
 - **Translations**: German, Spanish, French, Italian, Japanese, Korean, Dutch, Portuguese (Brazil), Russian, Chinese (Simplified and Traditional), Turkish and Polish.
 - The system rotation lock still wins: while it is on, nothing changes.

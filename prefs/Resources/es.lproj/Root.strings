@@ -16,6 +16,8 @@
 	<string>Girar automáticamente</string>
 	<key>Auto-Rotate rotates after a delay while a ring fills around the button, in place of Hide After; with Tap to Cancel, a tap keeps the screen as it is. Long press the button to rotate and blacklist the app; swipe it to dismiss.</key>
 	<string>«Girar automáticamente» gira tras un retraso mientras un anillo se llena alrededor del botón, en lugar de «Ocultar tras». Con «Tocar para cancelar», un toque deja la pantalla como está. Mantén pulsado el botón para girar y añadir la app a la lista negra; deslízalo para descartarlo.</string>
+	<key>Automatic</key>
+	<string>Automático</string>
 	<key>Behavior</key>
 	<string>Comportamiento</string>
 	<key>Blacklisted Apps</key>
@@ -26,6 +28,8 @@
 	<string>Cancelar</string>
 	<key>Circle</key>
 	<string>Círculo</string>
+	<key>Dark</key>
+	<string>Oscuro</string>
 	<key>Default</key>
 	<string>Predeterminado</string>
 	<key>Delay</key>
@@ -48,6 +52,8 @@
 	<string>Ocultar tras</string>
 	<key>Icon Color</key>
 	<string>Color del icono</string>
+	<key>Light</key>
+	<string>Claro</string>
 	<key>Not Running</key>
 	<string>Sin ejecutar</string>
 	<key>OK</key>
@@ -88,6 +94,8 @@
 	<string>Compartir registro</string>
 	<key>Share Log creates a report for bug reports: the log, settings, jailbreak, device and iOS version, and the latest SpringBoard crash report if there is one. Record Rotation Test adds what SpringBoard does while the phone is turned.</key>
 	<string>«Compartir registro» crea un informe para reportar errores: el registro, los ajustes, el jailbreak, el dispositivo y la versión de iOS, y el último informe de fallo de SpringBoard si lo hay. «Grabar prueba de giro» añade lo que hace SpringBoard al girar el teléfono.</string>
+	<key>Show After</key>
+	<string>Mostrar tras</string>
 	<key>Size</key>
 	<string>Tamaño</string>
 	<key>Status</key>

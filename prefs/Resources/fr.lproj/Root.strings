@@ -16,6 +16,8 @@
 	<string>Rotation automatique</string>
 	<key>Auto-Rotate rotates after a delay while a ring fills around the button, in place of Hide After; with Tap to Cancel, a tap keeps the screen as it is. Long press the button to rotate and blacklist the app; swipe it to dismiss.</key>
 	<string>La rotation automatique fait pivoter l’écran après un délai, pendant qu’un anneau se remplit autour du bouton, à la place de « Masquer après ». Avec « Toucher pour annuler », un toucher laisse l’écran tel quel. Maintenez le bouton pour pivoter et mettre l’app en liste noire ; balayez-le pour le masquer.</string>
+	<key>Automatic</key>
+	<string>Automatique</string>
 	<key>Behavior</key>
 	<string>Comportement</string>
 	<key>Blacklisted Apps</key>
@@ -26,6 +28,8 @@
 	<string>Annuler</string>
 	<key>Circle</key>
 	<string>Cercle</string>
+	<key>Dark</key>
+	<string>Sombre</string>
 	<key>Default</key>
 	<string>Par défaut</string>
 	<key>Delay</key>
@@ -48,6 +52,8 @@
 	<string>Masquer après</string>
 	<key>Icon Color</key>
 	<string>Couleur de l’icône</string>
+	<key>Light</key>
+	<string>Clair</string>
 	<key>Not Running</key>
 	<string>Inactif</string>
 	<key>OK</key>
@@ -88,6 +94,8 @@
 	<string>Partager le journal</string>
 	<key>Share Log creates a report for bug reports: the log, settings, jailbreak, device and iOS version, and the latest SpringBoard crash report if there is one. Record Rotation Test adds what SpringBoard does while the phone is turned.</key>
 	<string>« Partager le journal » crée un rapport pour signaler un bug : le journal, les réglages, le jailbreak, l’appareil et la version d’iOS, et le dernier rapport de plantage de SpringBoard s’il y en a un. « Enregistrer un test de rotation » y ajoute ce que fait SpringBoard quand on tourne le téléphone.</string>
+	<key>Show After</key>
+	<string>Afficher après</string>
 	<key>Size</key>
 	<string>Taille</string>
 	<key>Status</key>

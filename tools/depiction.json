@@ -46,6 +46,15 @@
       "views": [
         {
           "class": "DepictionSubheaderView",
+          "title": "1.0.4",
+          "useBoldText": true
+        },
+        {
+          "class": "DepictionMarkdownView",
+          "markdown": "- New Show After setting: how long the phone has to stay turned before the button appears, from 0 to 3 seconds.\n- New Theme setting: the button can stay light or dark, or follow the system."
+        },
+        {
+          "class": "DepictionSubheaderView",
           "title": "1.0.3",
           "useBoldText": true
         },

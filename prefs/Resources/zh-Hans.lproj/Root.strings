@@ -16,6 +16,8 @@
 	<string>自动旋转</string>
 	<key>Auto-Rotate rotates after a delay while a ring fills around the button, in place of Hide After; with Tap to Cancel, a tap keeps the screen as it is. Long press the button to rotate and blacklist the app; swipe it to dismiss.</key>
 	<string>自动旋转会在按钮周围的圆环填满后旋转，代替“隐藏时间”。开启“轻点取消”后，轻点按钮会保持屏幕不变。长按按钮可旋转并将 App 加入黑名单；轻扫可将其关闭。</string>
+	<key>Automatic</key>
+	<string>自动</string>
 	<key>Behavior</key>
 	<string>行为</string>
 	<key>Blacklisted Apps</key>
@@ -26,6 +28,8 @@
 	<string>取消</string>
 	<key>Circle</key>
 	<string>圆形</string>
+	<key>Dark</key>
+	<string>深色</string>
 	<key>Default</key>
 	<string>默认</string>
 	<key>Delay</key>
@@ -48,6 +52,8 @@
 	<string>隐藏时间</string>
 	<key>Icon Color</key>
 	<string>图标颜色</string>
+	<key>Light</key>
+	<string>浅色</string>
 	<key>Not Running</key>
 	<string>未运行</string>
 	<key>OK</key>
@@ -88,6 +94,8 @@
 	<string>共享日志</string>
 	<key>Share Log creates a report for bug reports: the log, settings, jailbreak, device and iOS version, and the latest SpringBoard crash report if there is one. Record Rotation Test adds what SpringBoard does while the phone is turned.</key>
 	<string>“共享日志”会生成用于报告问题的报告：日志、设置、越狱环境、设备和 iOS 版本，以及最新的 SpringBoard 崩溃报告（如有）。“录制旋转测试”会加入转动手机时 SpringBoard 的行为。</string>
+	<key>Show After</key>
+	<string>显示时间</string>
 	<key>Size</key>
 	<string>大小</string>
 	<key>Status</key>

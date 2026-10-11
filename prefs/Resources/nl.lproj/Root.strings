@@ -16,6 +16,8 @@
 	<string>Automatisch draaien</string>
 	<key>Auto-Rotate rotates after a delay while a ring fills around the button, in place of Hide After; with Tap to Cancel, a tap keeps the screen as it is. Long press the button to rotate and blacklist the app; swipe it to dismiss.</key>
 	<string>‘Automatisch draaien’ draait na een vertraging terwijl een ring zich rond de knop vult, in plaats van ‘Verbergen na’. Met ‘Tik om te annuleren’ blijft het scherm bij een tik zoals het is. Houd de knop ingedrukt om te draaien en de app op de blacklist te zetten; veeg hem weg om hem te sluiten.</string>
+	<key>Automatic</key>
+	<string>Automatisch</string>
 	<key>Behavior</key>
 	<string>Gedrag</string>
 	<key>Blacklisted Apps</key>
@@ -26,6 +28,8 @@
 	<string>Annuleer</string>
 	<key>Circle</key>
 	<string>Cirkel</string>
+	<key>Dark</key>
+	<string>Donker</string>
 	<key>Default</key>
 	<string>Standaard</string>
 	<key>Delay</key>
@@ -48,6 +52,8 @@
 	<string>Verbergen na</string>
 	<key>Icon Color</key>
 	<string>Symboolkleur</string>
+	<key>Light</key>
+	<string>Licht</string>
 	<key>Not Running</key>
 	<string>Niet actief</string>
 	<key>OK</key>
@@ -88,6 +94,8 @@
 	<string>Log delen</string>
 	<key>Share Log creates a report for bug reports: the log, settings, jailbreak, device and iOS version, and the latest SpringBoard crash report if there is one. Record Rotation Test adds what SpringBoard does while the phone is turned.</key>
 	<string>‘Log delen’ maakt een rapport voor foutmeldingen: het log, de instellingen, de jailbreak, het apparaat en de iOS-versie, en het nieuwste SpringBoard-crashrapport als dat er is. ‘Draaitest opnemen’ voegt toe wat SpringBoard doet terwijl de telefoon wordt gedraaid.</string>
+	<key>Show After</key>
+	<string>Tonen na</string>
 	<key>Size</key>
 	<string>Grootte</string>
 	<key>Status</key>

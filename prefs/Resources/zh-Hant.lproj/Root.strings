@@ -16,6 +16,8 @@
 	<string>自動旋轉</string>
 	<key>Auto-Rotate rotates after a delay while a ring fills around the button, in place of Hide After; with Tap to Cancel, a tap keeps the screen as it is. Long press the button to rotate and blacklist the app; swipe it to dismiss.</key>
 	<string>自動旋轉會在按鈕周圍的圓環填滿後旋轉，取代「隱藏時間」。開啟「點一下取消」後，點一下按鈕會保持螢幕不變。按住按鈕可旋轉並將 App 加入黑名單；滑動可將其關閉。</string>
+	<key>Automatic</key>
+	<string>自動</string>
 	<key>Behavior</key>
 	<string>行為</string>
 	<key>Blacklisted Apps</key>
@@ -26,6 +28,8 @@
 	<string>取消</string>
 	<key>Circle</key>
 	<string>圓形</string>
+	<key>Dark</key>
+	<string>深色</string>
 	<key>Default</key>
 	<string>預設</string>
 	<key>Delay</key>
@@ -48,6 +52,8 @@
 	<string>隱藏時間</string>
 	<key>Icon Color</key>
 	<string>圖像顏色</string>
+	<key>Light</key>
+	<string>淺色</string>
 	<key>Not Running</key>
 	<string>未執行</string>
 	<key>OK</key>
@@ -88,6 +94,8 @@
 	<string>分享記錄</string>
 	<key>Share Log creates a report for bug reports: the log, settings, jailbreak, device and iOS version, and the latest SpringBoard crash report if there is one. Record Rotation Test adds what SpringBoard does while the phone is turned.</key>
 	<string>「分享記錄」會產生用於回報問題的報告：記錄、設定、越獄環境、裝置與 iOS 版本，以及最新的 SpringBoard 當機報告（如有）。「錄製旋轉測試」會加入轉動手機時 SpringBoard 的行為。</string>
+	<key>Show After</key>
+	<string>顯示時間</string>
 	<key>Size</key>
 	<string>大小</string>
 	<key>Status</key>

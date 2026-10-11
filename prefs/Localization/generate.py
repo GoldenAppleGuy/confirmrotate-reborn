@@ -41,6 +41,7 @@ ROOT = {
     'Auto-Rotate': ['Automatisch drehen', 'Girar automáticamente', 'Rotation automatique', 'Rotazione automatica', '自動回転', '자동 회전', 'Automatisch draaien', 'Girar automaticamente', 'Автоповорот', '自动旋转', '自動旋轉', 'Otomatik Döndür', 'Automatyczny obrót'],
     'Tap to Cancel': ['Tippen zum Abbrechen', 'Tocar para cancelar', 'Toucher pour annuler', 'Tocca per annullare', 'タップでキャンセル', '탭하여 취소', 'Tik om te annuleren', 'Toque para cancelar', 'Нажатие отменяет', '轻点取消', '點一下取消', 'Dokunarak İptal', 'Stuknij, aby anulować'],
     'Delay': ['Verzögerung', 'Retraso', 'Délai', 'Ritardo', '待ち時間', '지연 시간', 'Vertraging', 'Atraso', 'Задержка', '延迟', '延遲', 'Gecikme', 'Opóźnienie'],
+    'Show After': ['Einblenden nach', 'Mostrar tras', 'Afficher après', 'Mostra dopo', '表示まで', '표시까지', 'Tonen na', 'Mostrar após', 'Показывать через', '显示时间', '顯示時間', 'Gösterme Süresi', 'Pokaż po'],
     'Hide After': ['Ausblenden nach', 'Ocultar tras', 'Masquer après', 'Nascondi dopo', '非表示まで', '숨기기까지', 'Verbergen na', 'Ocultar após', 'Скрывать через', '隐藏时间', '隱藏時間', 'Gizleme Süresi', 'Ukryj po'],
     'Haptic Feedback': ['Haptisches Feedback', 'Respuesta háptica', 'Retour haptique', 'Feedback aptico', '触覚フィードバック', '햅틱 피드백', 'Haptische feedback', 'Resposta tátil', 'Тактильный отклик', '触感反馈', '觸覺回饋', 'Dokunsal Geri Bildirim', 'Wibracje'],
     F_BEHAVIOR: [
@@ -59,6 +60,9 @@ ROOT = {
         'Automatyczny obrót obraca ekran po opóźnieniu, gdy wokół przycisku zapełnia się pierścień, zamiast „Ukryj po”. Z opcją „Stuknij, aby anulować” stuknięcie pozostawia ekran bez zmian. Przytrzymaj przycisk, aby obrócić i dodać aplikację do czarnej listy; przesuń go, aby go zamknąć.',
     ],
     'Appearance': ['Darstellung', 'Apariencia', 'Apparence', 'Aspetto', '外観', '모양', 'Weergave', 'Aparência', 'Внешний вид', '外观', '外觀', 'Görünüm', 'Wygląd'],
+    'Automatic': ['Automatisch', 'Automático', 'Automatique', 'Automatico', '自動', '자동', 'Automatisch', 'Automático', 'Автоматически', '自动', '自動', 'Otomatik', 'Automatycznie'],
+    'Light': ['Hell', 'Claro', 'Clair', 'Chiaro', 'ライト', '라이트', 'Licht', 'Claro', 'Светлое', '浅色', '淺色', 'Açık', 'Jasny'],
+    'Dark': ['Dunkel', 'Oscuro', 'Sombre', 'Scuro', 'ダーク', '다크', 'Donker', 'Escuro', 'Тёмное', '深色', '深色', 'Koyu', 'Ciemny'],
     'Circle': ['Kreis', 'Círculo', 'Cercle', 'Cerchio', '円', '원형', 'Cirkel', 'Círculo', 'Круг', '圆形', '圓形', 'Daire', 'Koło'],
     'Rounded Square': ['Abgerundetes Quadrat', 'Cuadrado redondeado', 'Carré arrondi', 'Quadrato arrotondato', '角丸四角形', '둥근 사각형', 'Afgerond vierkant', 'Quadrado arredondado', 'Скруглённый квадрат', '圆角方形', '圓角方形', 'Yuvarlatılmış Kare', 'Zaokrąglony kwadrat'],
     'Icon Color': ['Symbolfarbe', 'Color del icono', 'Couleur de l’icône', 'Colore icona', 'アイコンの色', '아이콘 색상', 'Symboolkleur', 'Cor do ícone', 'Цвет значка', '图标颜色', '圖像顏色', 'Simge Rengi', 'Kolor ikony'],

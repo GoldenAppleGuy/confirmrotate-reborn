@@ -281,7 +281,9 @@ static NSString *gIconColor = @"Default";
 // bottom edge; returning to portrait, it stays at the same physical spot.
 static CGFloat gDistanceFromStatusBar = 0.25;
 #define CR_EDGE_INSET 0.10
+static NSTimeInterval gShowAfter = 0.3;  // the phone has to stay turned this long before the button shows
 static NSTimeInterval gHideAfter = 5.0;
+static NSInteger gTheme;                  // button look: 0 follows light / dark mode, 1 light, 2 dark
 static NSTimeInterval gAutoRotateAfter;   // 0: off
 static BOOL gTapToCancel = YES;           // with auto-rotate: the button reads "Cancel?" and a tap cancels
 static BOOL gHaptics = YES;
@@ -350,6 +352,8 @@ static void CRLoadPrefs(void) {
     gIconColor = CRPrefString(CFSTR("IconColor"), @"Default");
     gDistanceFromStatusBar = round(CRPrefNumber(CFSTR("DistanceFromStatusBar"), 25, 5, 95)) / 100.0;
     gHideAfter = round(CRPrefNumber(CFSTR("HideAfter"), 5, 1, 15));
+    gShowAfter = round(CRPrefNumber(CFSTR("ShowAfter"), 0.3, 0, 3) * 10) / 10;
+    gTheme = (NSInteger)round(CRPrefNumber(CFSTR("Theme"), 0, 0, 2));
     // Auto-Rotate switch (with Tap to Cancel and the delay as its options). Earlier versions had only the
     // delay, 0 meaning off: a delay already set turns the switch on, once.
     CFPropertyListRef autoRotate = CFPreferencesCopyAppValue(CFSTR("AutoRotate"), CR_PREFS_DOMAIN);
@@ -390,6 +394,18 @@ static UIColor *CRAccentColor(void) {
         @"Teal": [UIColor systemTealColor], @"Yellow": [UIColor systemYellowColor],
     };
     return colors[gIconColor] ?: [UIColor labelColor]; // Default: follows light / dark mode
+}
+
+// The Theme setting as a style for the button (unspecified: follow the system)
+static UIUserInterfaceStyle CRThemeStyle(void) {
+    return gTheme == 1 ? UIUserInterfaceStyleLight : gTheme == 2 ? UIUserInterfaceStyleDark : UIUserInterfaceStyleUnspecified;
+}
+
+// A dynamic color as the button shows it: views follow the button's style, layer colors need resolving
+static CGColorRef CRResolvedCGColor(UIColor *color, UIView *view) {
+    UITraitCollection *traits = view ? view.traitCollection : [UITraitCollection currentTraitCollection];
+    if (gTheme) traits = [UITraitCollection traitCollectionWithTraitsFromCollections:@[traits, [UITraitCollection traitCollectionWithUserInterfaceStyle:CRThemeStyle()]]];
+    return [color resolvedColorWithTraitCollection:traits].CGColor;
 }
 
 static SBOrientationLockManager *CRLockManager(void) {
@@ -734,6 +750,7 @@ static UIView *CRMakeButton(void) {
     button.layer.cornerRadius = cornerRadius;
     button.layer.cornerCurve = kCACornerCurveContinuous;
     button.layer.masksToBounds = YES;
+    button.overrideUserInterfaceStyle = CRThemeStyle(); // material and colors below follow it
     UIColor *accent = CRAccentColor();
 
     // System material: follows light / dark mode
@@ -798,7 +815,7 @@ static void CRStartAutoRotate(UIView *button) {
     gRing = [CAShapeLayer layer];
     gRing.path = path.CGPath;
     gRing.fillColor = nil;
-    gRing.strokeColor = CRAccentColor().CGColor;
+    gRing.strokeColor = CRResolvedCGColor(CRAccentColor(), button);
     gRing.lineWidth = width;
     gRing.lineCap = kCALineCapRound;
     gRing.strokeEnd = 1;
@@ -890,8 +907,8 @@ static void CRShow(UIDeviceOrientation device, UIInterfaceOrientation target) {
 }
 
 static void CRLogPrefs(void) {
-    CRLogInfo(@"settings: enabled=%d appSwitch=%d size=%.0f opacity=%.2f color=%@ hide=%.0f auto=%.0f cancel=%d haptics=%d always=%@ white=%@ black=%@ (front %@, excluded %d)",
-          gEnabled, gPortraitOnAppSwitch, gButtonSize, gButtonOpacity, gIconColor, gHideAfter, gAutoRotateAfter, gTapToCancel, gHaptics,
+    CRLogInfo(@"settings: enabled=%d appSwitch=%d size=%.0f opacity=%.2f color=%@ theme=%ld show=%.1f hide=%.0f auto=%.0f cancel=%d haptics=%d always=%@ white=%@ black=%@ (front %@, excluded %d)",
+          gEnabled, gPortraitOnAppSwitch, gButtonSize, gButtonOpacity, gIconColor, (long)gTheme, gShowAfter, gHideAfter, gAutoRotateAfter, gTapToCancel, gHaptics,
           [gAlwaysShowApps.allObjects componentsJoinedByString:@","], [gWhitelistApps.allObjects componentsJoinedByString:@","],
           [gBlacklistApps.allObjects componentsJoinedByString:@","], gFrontBundle, gExcluded);
 }
@@ -948,9 +965,10 @@ static NSString *CRCurrentFrontBundle(void) {
 - (void)deviceOrientationChanged {
     if (!gStarted) return;
     CRLog(@"physical orientation %ld", (long)gRawDevice);
-    // Wait for the phone to settle; it passes through other orientations while turning.
+    // Wait Show After before showing the button (0.3 s by default). iOS already filters out the in-between
+    // orientations of a turn, apart from flat ones, which are ignored.
     NSUInteger token = ++gToken;
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.3 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(gShowAfter * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         if (token == gToken) [self evaluate];
     });
 }

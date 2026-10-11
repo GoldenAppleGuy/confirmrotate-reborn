@@ -427,8 +427,8 @@ static NSString *CRPackageReport(void) {
 }
 @end
 
-// Slider row whose value reads as a whole number (plus an optional "valueSuffix", or "zeroText" for 0,
-// from the specifier) at all times, and can be typed in with a long press. The slider's own value label
+// Slider row whose value reads as a whole number, or with "decimals" places (plus an optional
+// "valueSuffix", or "zeroText" for 0, from the specifier) at all times, and can be typed in with a long press. The slider's own value label
 // sits inside the slider and is sized and laid out by it, so instead of covering it, that label's class
 // is swapped for one that formats whatever text the slider sets (it prints decimals, on every change).
 #import <Preferences/PSSliderTableCell.h>
@@ -509,11 +509,30 @@ static Class CRPaddedSliderClass(Class base) {
     return [self.control isKindOfClass:[UISlider class]] ? (UISlider *)self.control : nil;
 }
 
+- (NSInteger)decimals {
+    return MAX(0, MIN(3, [[self.specifier propertyForKey:@"decimals"] integerValue]));
+}
+
+// The value rounded to the row's decimal places
+- (double)roundedValue:(double)value {
+    double scale = pow(10, [self decimals]);
+    return round(value * scale) / scale;
+}
+
+// The number alone, with the phone's decimal separator
+- (NSString *)numberText:(double)value {
+    NSNumberFormatter *formatter = [NSNumberFormatter new];
+    formatter.numberStyle = NSNumberFormatterDecimalStyle;
+    formatter.usesGroupingSeparator = NO;
+    formatter.minimumFractionDigits = formatter.maximumFractionDigits = [self decimals];
+    return [formatter stringFromNumber:@([self roundedValue:value])];
+}
+
 - (NSString *)textForValue:(float)value {
     NSString *zeroText = [self.specifier propertyForKey:@"zeroText"]; // e.g. "Off" for a setting where 0 disables it
-    if (zeroText && round(value) == 0) return zeroText;
+    if (zeroText && [self roundedValue:value] == 0) return zeroText;
     NSString *suffix = CRLocalized([self.specifier propertyForKey:@"valueSuffix"] ?: @"");
-    return [NSString stringWithFormat:@"%.0f%@", round(value), suffix];
+    return [[self numberText:value] stringByAppendingString:suffix];
 }
 
 // The slider's value label: a label inside the slider showing a number
@@ -608,11 +627,11 @@ static Class CRPaddedSliderClass(Class base) {
 
     float min = [[self.specifier propertyForKey:@"min"] floatValue], max = [[self.specifier propertyForKey:@"max"] floatValue];
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:CRLocalized(@"Enter Value")
-        message:[NSString stringWithFormat:CRLocalized(@"From %1$@ to %2$@."), [NSString stringWithFormat:@"%.0f", min], [self textForValue:max]]
+        message:[NSString stringWithFormat:CRLocalized(@"From %1$@ to %2$@."), [self numberText:min], [self textForValue:max]]
         preferredStyle:UIAlertControllerStyleAlert];
     [alert addTextFieldWithConfigurationHandler:^(UITextField *field) {
-        field.keyboardType = UIKeyboardTypeNumberPad;
-        field.text = [NSString stringWithFormat:@"%.0f", round(slider.value)];
+        field.keyboardType = [self decimals] ? UIKeyboardTypeDecimalPad : UIKeyboardTypeNumberPad;
+        field.text = [self numberText:slider.value];
         field.clearButtonMode = UITextFieldViewModeWhileEditing;
     }];
     [alert addAction:[UIAlertAction actionWithTitle:CRLocalized(@"Cancel") style:UIAlertActionStyleCancel handler:nil]];
@@ -620,7 +639,10 @@ static Class CRPaddedSliderClass(Class base) {
     [alert addAction:[UIAlertAction actionWithTitle:CRLocalized(@"Set") style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
         NSString *text = alert.textFields.firstObject.text;
         if (text.length == 0) return;
-        float value = MAX(min, MIN(max, (float)round(text.doubleValue)));
+        NSNumberFormatter *formatter = [NSNumberFormatter new];
+        formatter.numberStyle = NSNumberFormatterDecimalStyle;
+        NSNumber *number = [formatter numberFromString:text] ?: @(text.doubleValue);
+        float value = MAX(min, MIN(max, (float)[weakSelf roundedValue:number.doubleValue]));
         [slider setValue:value animated:YES];
         [weakSelf controlChanged:slider]; // saves through the specifier, as dragging does
     }]];

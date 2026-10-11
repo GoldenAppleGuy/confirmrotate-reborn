@@ -16,6 +16,8 @@
 	<string>자동 회전</string>
 	<key>Auto-Rotate rotates after a delay while a ring fills around the button, in place of Hide After; with Tap to Cancel, a tap keeps the screen as it is. Long press the button to rotate and blacklist the app; swipe it to dismiss.</key>
 	<string>자동 회전은 버튼 주위의 링이 채워지면 회전하며, ‘숨기기까지’ 대신 사용됩니다. ‘탭하여 취소’를 켜면 탭할 때 화면이 그대로 유지됩니다. 버튼을 길게 누르면 회전하고 앱을 블랙리스트에 추가하며, 쓸어 넘기면 닫힙니다.</string>
+	<key>Automatic</key>
+	<string>자동</string>
 	<key>Behavior</key>
 	<string>동작</string>
 	<key>Blacklisted Apps</key>
@@ -26,6 +28,8 @@
 	<string>취소</string>
 	<key>Circle</key>
 	<string>원형</string>
+	<key>Dark</key>
+	<string>다크</string>
 	<key>Default</key>
 	<string>기본</string>
 	<key>Delay</key>
@@ -48,6 +52,8 @@
 	<string>숨기기까지</string>
 	<key>Icon Color</key>
 	<string>아이콘 색상</string>
+	<key>Light</key>
+	<string>라이트</string>
 	<key>Not Running</key>
 	<string>실행 안 됨</string>
 	<key>OK</key>
@@ -88,6 +94,8 @@
 	<string>로그 공유</string>
 	<key>Share Log creates a report for bug reports: the log, settings, jailbreak, device and iOS version, and the latest SpringBoard crash report if there is one. Record Rotation Test adds what SpringBoard does while the phone is turned.</key>
 	<string>‘로그 공유’는 버그 신고용 보고서를 만듭니다: 로그, 설정, 탈옥 환경, 기기 및 iOS 버전, 그리고 있는 경우 최신 SpringBoard 충돌 보고서. ‘회전 테스트 기록’은 기기를 돌릴 때 SpringBoard의 동작을 추가합니다.</string>
+	<key>Show After</key>
+	<string>표시까지</string>
 	<key>Size</key>
 	<string>크기</string>
 	<key>Status</key>

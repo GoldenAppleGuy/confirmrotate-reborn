@@ -16,6 +16,8 @@
 	<string>自動回転</string>
 	<key>Auto-Rotate rotates after a delay while a ring fills around the button, in place of Hide After; with Tap to Cancel, a tap keeps the screen as it is. Long press the button to rotate and blacklist the app; swipe it to dismiss.</key>
 	<string>自動回転は、ボタンの周りのリングが満ちると回転します（「非表示まで」の代わり）。「タップでキャンセル」がオンの場合、タップすると画面はそのままです。ボタンを長押しすると回転してAppをブラックリストに追加し、スワイプすると閉じます。</string>
+	<key>Automatic</key>
+	<string>自動</string>
 	<key>Behavior</key>
 	<string>動作</string>
 	<key>Blacklisted Apps</key>
@@ -26,6 +28,8 @@
 	<string>キャンセル</string>
 	<key>Circle</key>
 	<string>円</string>
+	<key>Dark</key>
+	<string>ダーク</string>
 	<key>Default</key>
 	<string>デフォルト</string>
 	<key>Delay</key>
@@ -48,6 +52,8 @@
 	<string>非表示まで</string>
 	<key>Icon Color</key>
 	<string>アイコンの色</string>
+	<key>Light</key>
+	<string>ライト</string>
 	<key>Not Running</key>
 	<string>未実行</string>
 	<key>OK</key>
@@ -88,6 +94,8 @@
 	<string>ログを共有</string>
 	<key>Share Log creates a report for bug reports: the log, settings, jailbreak, device and iOS version, and the latest SpringBoard crash report if there is one. Record Rotation Test adds what SpringBoard does while the phone is turned.</key>
 	<string>「ログを共有」は不具合報告用のレポートを作成します（ログ、設定、脱獄環境、デバイスとiOSバージョン、あれば最新のSpringBoardクラッシュレポート）。「回転テストを記録」は、端末を回したときのSpringBoardの動作を追加します。</string>
+	<key>Show After</key>
+	<string>表示まで</string>
 	<key>Size</key>
 	<string>サイズ</string>
 	<key>Status</key>

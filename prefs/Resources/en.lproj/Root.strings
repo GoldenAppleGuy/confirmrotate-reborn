@@ -16,6 +16,8 @@
 	<string>Auto-Rotate</string>
 	<key>Auto-Rotate rotates after a delay while a ring fills around the button, in place of Hide After; with Tap to Cancel, a tap keeps the screen as it is. Long press the button to rotate and blacklist the app; swipe it to dismiss.</key>
 	<string>Auto-Rotate rotates after a delay while a ring fills around the button, in place of Hide After; with Tap to Cancel, a tap keeps the screen as it is. Long press the button to rotate and blacklist the app; swipe it to dismiss.</string>
+	<key>Automatic</key>
+	<string>Automatic</string>
 	<key>Behavior</key>
 	<string>Behavior</string>
 	<key>Blacklisted Apps</key>
@@ -26,6 +28,8 @@
 	<string>Cancel</string>
 	<key>Circle</key>
 	<string>Circle</string>
+	<key>Dark</key>
+	<string>Dark</string>
 	<key>Default</key>
 	<string>Default</string>
 	<key>Delay</key>
@@ -48,6 +52,8 @@
 	<string>Hide After</string>
 	<key>Icon Color</key>
 	<string>Icon Color</string>
+	<key>Light</key>
+	<string>Light</string>
 	<key>Not Running</key>
 	<string>Not Running</string>
 	<key>OK</key>
@@ -88,6 +94,8 @@
 	<string>Share Log</string>
 	<key>Share Log creates a report for bug reports: the log, settings, jailbreak, device and iOS version, and the latest SpringBoard crash report if there is one. Record Rotation Test adds what SpringBoard does while the phone is turned.</key>
 	<string>Share Log creates a report for bug reports: the log, settings, jailbreak, device and iOS version, and the latest SpringBoard crash report if there is one. Record Rotation Test adds what SpringBoard does while the phone is turned.</string>
+	<key>Show After</key>
+	<string>Show After</string>
 	<key>Size</key>
 	<string>Size</string>
 	<key>Status</key>
