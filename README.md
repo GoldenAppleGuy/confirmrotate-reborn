@@ -18,20 +18,20 @@ Asks before the screen rotates. Turn the phone and a button appears, upright for
 
 ## Requirements
 
-- iOS 15 to 17, jailbroken (rootless or rootful). Tested on iOS 17.0 (iPhone 15, Dopamine) and iOS 15.4.1 (iPhone 12 mini, Dopamine). iOS 16 is untested.
+- iOS 15 to 17, jailbroken (rootless, roothide or rootful). Tested on iOS 17.0 (iPhone 15, Dopamine) and iOS 15.4.1 (iPhone 12 mini, Dopamine). iOS 16 and roothide are untested.
 - PreferenceLoader and AltList. CCSupport for the Control Center toggle.
-- roothide: use the rootless package with roothide's patcher.
 
 The tweak picks its hooks at startup: iOS 17's traits pipeline, or the older path that iOS 15 uses (see How it works).
 
 ## Building
 
-Needs [Theos](https://theos.dev). `./build.sh` builds both packages into `packages/`:
+Needs [Theos](https://theos.dev). `./build.sh` builds all three packages into `packages/`:
 
 - `*_iphoneos-arm64.deb`: rootless
+- `*_iphoneos-arm64e.deb`: roothide (needs [roothide's Theos](https://github.com/roothide/theos), at `~/theos-roothide` or `$THEOS_ROOTHIDE`)
 - `*_iphoneos-arm.deb`: rootful
 
-Or one at a time: `make package` (rootless) or `make package THEOS_PACKAGE_SCHEME=` (rootful).
+Or one at a time: `make package` (rootless), `make package THEOS=<roothide Theos> THEOS_PACKAGE_SCHEME=roothide` (roothide) or `make package THEOS_PACKAGE_SCHEME=` (rootful).
 
 ## Publishing
 
@@ -61,9 +61,19 @@ On iOS 17, SpringBoard decides orientation in its traits pipeline, which reads t
 
 iOS 15 has no such pipeline: every orientation change reaches SpringBoard through `-[SpringBoard _deviceOrientationChanged:]`. While holding, the tweak lets only the held orientation through it, and confirming passes the new orientation through it. Physical orientation changes still arrive there while holding (the system's own lock overrides stop them, so those can't be used). App switches come from `-[SBLayoutStateTransitionCoordinator beginTransitionForWorkspaceTransaction:]`. On iOS 15, switching back to an app can occasionally be slow to accept touches for about a second with the tweak enabled; it was left as it is.
 
-## Debugging
+## Diagnostics
 
-Create `/var/mobile/Documents/confirmrotate.debug` on the device and respring; the tweak then logs to `/var/mobile/Documents/confirmrotate.log`.
+The Diagnostics section in settings:
+
+- **Status**: Active, Off, Paused, Unsupported (no known way to hook this iOS version) or Not Running.
+- **Detailed Logging**: logs every turn, button and app switch, not just startup and errors.
+- **Record Rotation Test**: for 30 seconds, logs what SpringBoard itself does while the phone is turned.
+- **Share Log**: a report for bug reports with the log, settings, device, iOS version, jailbreak type and support packages (not the list of installed tweaks), plus the latest SpringBoard crash report and a one-time survey of SpringBoard's rotation classes.
+- **Try Again**: shown when the crash guard has paused the tweak.
+
+Crash guard: if SpringBoard restarts twice in a row within 30 seconds of the tweak loading, the tweak pauses itself on the next start instead of hooking anything, so it can't cause a respring loop. Try Again clears it.
+
+Files are in `/var/mobile/Documents/ConfirmRotateReborn/`.
 
 ## Settings
 

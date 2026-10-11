@@ -4,6 +4,8 @@
 <dict>
 	<key>%</key>
 	<string>%</string>
+	<key>Active</key>
+	<string>Actief</string>
 	<key>Always Show In</key>
 	<string>Altijd tonen in</string>
 	<key>Appearance</key>
@@ -28,6 +30,10 @@
 	<string>Standaard</string>
 	<key>Delay</key>
 	<string>Vertraging</string>
+	<key>Detailed Logging</key>
+	<string>Gedetailleerd log</string>
+	<key>Diagnostics</key>
+	<string>Diagnose</string>
 	<key>Enabled</key>
 	<string>Ingeschakeld</string>
 	<key>Enter Value</key>
@@ -42,10 +48,18 @@
 	<string>Verbergen na</string>
 	<key>Icon Color</key>
 	<string>Symboolkleur</string>
+	<key>Not Running</key>
+	<string>Niet actief</string>
+	<key>OK</key>
+	<string>OK</string>
+	<key>Off</key>
+	<string>Uit</string>
 	<key>Opacity</key>
 	<string>Dekking</string>
 	<key>Orange</key>
 	<string>Oranje</string>
+	<key>Paused</key>
+	<string>Gepauzeerd</string>
 	<key>Pink</key>
 	<string>Roze</string>
 	<key>Portrait on App Switch</key>
@@ -56,20 +70,36 @@
 	<string>De positie is de afstand tot de statusbalk, langs de zijkant van het scherm.</string>
 	<key>Purple</key>
 	<string>Paars</string>
+	<key>Record Rotation Test</key>
+	<string>Draaitest opnemen</string>
+	<key>Recording for 30 seconds. Open an app that rotates, such as Safari, then turn the phone to the left, to the right and back upright, pausing at each. Then come back here and tap Share Log.</key>
+	<string>Opname van 30 seconden. Open een app die draait, zoals Safari, en draai de telefoon naar links, naar rechts en weer rechtop, met telkens een korte pauze. Kom daarna terug en tik op ‘Log delen’.</string>
 	<key>Red</key>
 	<string>Rood</string>
+	<key>Rotation Test</key>
+	<string>Draaitest</string>
 	<key>Rounded Square</key>
 	<string>Afgerond vierkant</string>
 	<key>Selected</key>
 	<string>Geselecteerd</string>
 	<key>Set</key>
 	<string>Stel in</string>
+	<key>Share Log</key>
+	<string>Log delen</string>
+	<key>Share Log creates a report for bug reports: the log, settings, jailbreak, device and iOS version, and the latest SpringBoard crash report if there is one. Record Rotation Test adds what SpringBoard does while the phone is turned.</key>
+	<string>‘Log delen’ maakt een rapport voor foutmeldingen: het log, de instellingen, de jailbreak, het apparaat en de iOS-versie, en het nieuwste SpringBoard-crashrapport als dat er is. ‘Draaitest opnemen’ voegt toe wat SpringBoard doet terwijl de telefoon wordt gedraaid.</string>
 	<key>Size</key>
 	<string>Grootte</string>
+	<key>Status</key>
+	<string>Status</string>
 	<key>Tap to Cancel</key>
 	<string>Tik om te annuleren</string>
 	<key>Teal</key>
 	<string>Groenblauw</string>
+	<key>Try Again</key>
+	<string>Opnieuw proberen</string>
+	<key>Unsupported</key>
+	<string>Niet ondersteund</string>
 	<key>Whitelisted Apps</key>
 	<string>Apps op de whitelist</string>
 	<key>Whitelisted apps are the only ones the tweak acts in. Blacklisted apps rotate freely, as without the tweak. Always Show In is for apps that handle rotation themselves.</key>

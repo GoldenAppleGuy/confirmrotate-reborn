@@ -4,6 +4,8 @@
 <dict>
 	<key>%</key>
 	<string>%</string>
+	<key>Active</key>
+	<string>Ativo</string>
 	<key>Always Show In</key>
 	<string>Sempre mostrar em</string>
 	<key>Appearance</key>
@@ -28,6 +30,10 @@
 	<string>Padrão</string>
 	<key>Delay</key>
 	<string>Atraso</string>
+	<key>Detailed Logging</key>
+	<string>Registro detalhado</string>
+	<key>Diagnostics</key>
+	<string>Diagnóstico</string>
 	<key>Enabled</key>
 	<string>Ativado</string>
 	<key>Enter Value</key>
@@ -42,10 +48,18 @@
 	<string>Ocultar após</string>
 	<key>Icon Color</key>
 	<string>Cor do ícone</string>
+	<key>Not Running</key>
+	<string>Não em execução</string>
+	<key>OK</key>
+	<string>OK</string>
+	<key>Off</key>
+	<string>Desativado</string>
 	<key>Opacity</key>
 	<string>Opacidade</string>
 	<key>Orange</key>
 	<string>Laranja</string>
+	<key>Paused</key>
+	<string>Pausado</string>
 	<key>Pink</key>
 	<string>Rosa</string>
 	<key>Portrait on App Switch</key>
@@ -56,20 +70,36 @@
 	<string>A posição é a distância da barra de status, ao longo da lateral da tela.</string>
 	<key>Purple</key>
 	<string>Roxo</string>
+	<key>Record Rotation Test</key>
+	<string>Gravar teste de rotação</string>
+	<key>Recording for 30 seconds. Open an app that rotates, such as Safari, then turn the phone to the left, to the right and back upright, pausing at each. Then come back here and tap Share Log.</key>
+	<string>Gravando por 30 segundos. Abra um app que gire, como o Safari, e gire o telefone para a esquerda, para a direita e de volta à posição vertical, pausando em cada uma. Depois volte aqui e toque em “Compartilhar registro”.</string>
 	<key>Red</key>
 	<string>Vermelho</string>
+	<key>Rotation Test</key>
+	<string>Teste de rotação</string>
 	<key>Rounded Square</key>
 	<string>Quadrado arredondado</string>
 	<key>Selected</key>
 	<string>Selecionados</string>
 	<key>Set</key>
 	<string>Definir</string>
+	<key>Share Log</key>
+	<string>Compartilhar registro</string>
+	<key>Share Log creates a report for bug reports: the log, settings, jailbreak, device and iOS version, and the latest SpringBoard crash report if there is one. Record Rotation Test adds what SpringBoard does while the phone is turned.</key>
+	<string>“Compartilhar registro” cria um relatório para reportar erros: o registro, os ajustes, o jailbreak, o dispositivo e a versão do iOS, e o relatório de falha mais recente do SpringBoard, se houver. “Gravar teste de rotação” adiciona o que o SpringBoard faz enquanto o telefone é girado.</string>
 	<key>Size</key>
 	<string>Tamanho</string>
+	<key>Status</key>
+	<string>Estado</string>
 	<key>Tap to Cancel</key>
 	<string>Toque para cancelar</string>
 	<key>Teal</key>
 	<string>Azul-petróleo</string>
+	<key>Try Again</key>
+	<string>Tentar novamente</string>
+	<key>Unsupported</key>
+	<string>Não compatível</string>
 	<key>Whitelisted Apps</key>
 	<string>Apps na lista branca</string>
 	<key>Whitelisted apps are the only ones the tweak acts in. Blacklisted apps rotate freely, as without the tweak. Always Show In is for apps that handle rotation themselves.</key>

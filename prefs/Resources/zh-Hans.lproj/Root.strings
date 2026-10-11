@@ -4,6 +4,8 @@
 <dict>
 	<key>%</key>
 	<string>%</string>
+	<key>Active</key>
+	<string>运行中</string>
 	<key>Always Show In</key>
 	<string>始终显示于</string>
 	<key>Appearance</key>
@@ -28,6 +30,10 @@
 	<string>默认</string>
 	<key>Delay</key>
 	<string>延迟</string>
+	<key>Detailed Logging</key>
+	<string>详细日志</string>
+	<key>Diagnostics</key>
+	<string>诊断</string>
 	<key>Enabled</key>
 	<string>启用</string>
 	<key>Enter Value</key>
@@ -42,10 +48,18 @@
 	<string>隐藏时间</string>
 	<key>Icon Color</key>
 	<string>图标颜色</string>
+	<key>Not Running</key>
+	<string>未运行</string>
+	<key>OK</key>
+	<string>好</string>
+	<key>Off</key>
+	<string>已关闭</string>
 	<key>Opacity</key>
 	<string>不透明度</string>
 	<key>Orange</key>
 	<string>橙色</string>
+	<key>Paused</key>
+	<string>已暂停</string>
 	<key>Pink</key>
 	<string>粉色</string>
 	<key>Portrait on App Switch</key>
@@ -56,20 +70,36 @@
 	<string>位置是沿屏幕侧边与状态栏的距离。</string>
 	<key>Purple</key>
 	<string>紫色</string>
+	<key>Record Rotation Test</key>
+	<string>录制旋转测试</string>
+	<key>Recording for 30 seconds. Open an app that rotates, such as Safari, then turn the phone to the left, to the right and back upright, pausing at each. Then come back here and tap Share Log.</key>
+	<string>录制 30 秒。请打开会旋转的 App（如 Safari），将手机向左、向右转，再转回竖直，每次稍作停顿。然后回到这里轻点“共享日志”。</string>
 	<key>Red</key>
 	<string>红色</string>
+	<key>Rotation Test</key>
+	<string>旋转测试</string>
 	<key>Rounded Square</key>
 	<string>圆角方形</string>
 	<key>Selected</key>
 	<string>已选择</string>
 	<key>Set</key>
 	<string>设定</string>
+	<key>Share Log</key>
+	<string>共享日志</string>
+	<key>Share Log creates a report for bug reports: the log, settings, jailbreak, device and iOS version, and the latest SpringBoard crash report if there is one. Record Rotation Test adds what SpringBoard does while the phone is turned.</key>
+	<string>“共享日志”会生成用于报告问题的报告：日志、设置、越狱环境、设备和 iOS 版本，以及最新的 SpringBoard 崩溃报告（如有）。“录制旋转测试”会加入转动手机时 SpringBoard 的行为。</string>
 	<key>Size</key>
 	<string>大小</string>
+	<key>Status</key>
+	<string>状态</string>
 	<key>Tap to Cancel</key>
 	<string>轻点取消</string>
 	<key>Teal</key>
 	<string>青色</string>
+	<key>Try Again</key>
+	<string>重试</string>
+	<key>Unsupported</key>
+	<string>不支持</string>
 	<key>Whitelisted Apps</key>
 	<string>白名单 App</string>
 	<key>Whitelisted apps are the only ones the tweak acts in. Blacklisted apps rotate freely, as without the tweak. Always Show In is for apps that handle rotation themselves.</key>

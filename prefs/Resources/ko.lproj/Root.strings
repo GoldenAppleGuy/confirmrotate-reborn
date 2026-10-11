@@ -4,6 +4,8 @@
 <dict>
 	<key>%</key>
 	<string>%</string>
+	<key>Active</key>
+	<string>활성</string>
 	<key>Always Show In</key>
 	<string>항상 표시할 앱</string>
 	<key>Appearance</key>
@@ -28,6 +30,10 @@
 	<string>기본</string>
 	<key>Delay</key>
 	<string>지연 시간</string>
+	<key>Detailed Logging</key>
+	<string>상세 로그</string>
+	<key>Diagnostics</key>
+	<string>진단</string>
 	<key>Enabled</key>
 	<string>활성화</string>
 	<key>Enter Value</key>
@@ -42,10 +48,18 @@
 	<string>숨기기까지</string>
 	<key>Icon Color</key>
 	<string>아이콘 색상</string>
+	<key>Not Running</key>
+	<string>실행 안 됨</string>
+	<key>OK</key>
+	<string>확인</string>
+	<key>Off</key>
+	<string>끔</string>
 	<key>Opacity</key>
 	<string>불투명도</string>
 	<key>Orange</key>
 	<string>주황색</string>
+	<key>Paused</key>
+	<string>일시 정지됨</string>
 	<key>Pink</key>
 	<string>분홍색</string>
 	<key>Portrait on App Switch</key>
@@ -56,20 +70,36 @@
 	<string>위치는 화면 측면을 따라 상태 막대로부터의 거리입니다.</string>
 	<key>Purple</key>
 	<string>보라색</string>
+	<key>Record Rotation Test</key>
+	<string>회전 테스트 기록</string>
+	<key>Recording for 30 seconds. Open an app that rotates, such as Safari, then turn the phone to the left, to the right and back upright, pausing at each. Then come back here and tap Share Log.</key>
+	<string>30초 동안 기록합니다. Safari처럼 회전하는 앱을 열고 기기를 왼쪽, 오른쪽, 다시 세로로 돌리며 각각 잠시 멈추세요. 그런 다음 여기로 돌아와 ‘로그 공유’를 탭하세요.</string>
 	<key>Red</key>
 	<string>빨간색</string>
+	<key>Rotation Test</key>
+	<string>회전 테스트</string>
 	<key>Rounded Square</key>
 	<string>둥근 사각형</string>
 	<key>Selected</key>
 	<string>선택됨</string>
 	<key>Set</key>
 	<string>설정</string>
+	<key>Share Log</key>
+	<string>로그 공유</string>
+	<key>Share Log creates a report for bug reports: the log, settings, jailbreak, device and iOS version, and the latest SpringBoard crash report if there is one. Record Rotation Test adds what SpringBoard does while the phone is turned.</key>
+	<string>‘로그 공유’는 버그 신고용 보고서를 만듭니다: 로그, 설정, 탈옥 환경, 기기 및 iOS 버전, 그리고 있는 경우 최신 SpringBoard 충돌 보고서. ‘회전 테스트 기록’은 기기를 돌릴 때 SpringBoard의 동작을 추가합니다.</string>
 	<key>Size</key>
 	<string>크기</string>
+	<key>Status</key>
+	<string>상태</string>
 	<key>Tap to Cancel</key>
 	<string>탭하여 취소</string>
 	<key>Teal</key>
 	<string>청록색</string>
+	<key>Try Again</key>
+	<string>다시 시도</string>
+	<key>Unsupported</key>
+	<string>지원되지 않음</string>
 	<key>Whitelisted Apps</key>
 	<string>화이트리스트 앱</string>
 	<key>Whitelisted apps are the only ones the tweak acts in. Blacklisted apps rotate freely, as without the tweak. Always Show In is for apps that handle rotation themselves.</key>

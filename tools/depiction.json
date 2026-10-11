@@ -26,7 +26,7 @@
         {
           "class": "DepictionTableTextView",
           "title": "Compatibility",
-          "text": "iOS 15 – 17 (rootless and rootful)"
+          "text": "iOS 15 – 17 (rootless, roothide and rootful)"
         },
         {
           "class": "DepictionTableTextView",
@@ -44,6 +44,15 @@
       "tabname": "Changelog",
       "class": "DepictionStackView",
       "views": [
+        {
+          "class": "DepictionSubheaderView",
+          "title": "1.0.2",
+          "useBoldText": true
+        },
+        {
+          "class": "DepictionMarkdownView",
+          "markdown": "- New roothide package.\n- New Diagnostics section in settings: status, detailed logging, a rotation test recording, and Share Log, which creates a report for bug reports.\n- Crash guard: if SpringBoard restarts twice in a row shortly after the tweak loads, the tweak pauses itself instead of causing a respring loop.\n- Safer startup and rotation handling on iOS versions other than 15 and 17."
+        },
         {
           "class": "DepictionSubheaderView",
           "title": "1.0.1",

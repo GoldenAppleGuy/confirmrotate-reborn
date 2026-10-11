@@ -4,6 +4,8 @@
 <dict>
 	<key>%</key>
 	<string>%</string>
+	<key>Active</key>
+	<string>Активен</string>
 	<key>Always Show In</key>
 	<string>Всегда показывать в</string>
 	<key>Appearance</key>
@@ -28,6 +30,10 @@
 	<string>По умолчанию</string>
 	<key>Delay</key>
 	<string>Задержка</string>
+	<key>Detailed Logging</key>
+	<string>Подробный журнал</string>
+	<key>Diagnostics</key>
+	<string>Диагностика</string>
 	<key>Enabled</key>
 	<string>Включено</string>
 	<key>Enter Value</key>
@@ -42,10 +48,18 @@
 	<string>Скрывать через</string>
 	<key>Icon Color</key>
 	<string>Цвет значка</string>
+	<key>Not Running</key>
+	<string>Не запущен</string>
+	<key>OK</key>
+	<string>ОК</string>
+	<key>Off</key>
+	<string>Выключен</string>
 	<key>Opacity</key>
 	<string>Непрозрачность</string>
 	<key>Orange</key>
 	<string>Оранжевый</string>
+	<key>Paused</key>
+	<string>Приостановлен</string>
 	<key>Pink</key>
 	<string>Розовый</string>
 	<key>Portrait on App Switch</key>
@@ -56,20 +70,36 @@
 	<string>Положение — расстояние от строки состояния вдоль края экрана.</string>
 	<key>Purple</key>
 	<string>Фиолетовый</string>
+	<key>Record Rotation Test</key>
+	<string>Записать тест поворота</string>
+	<key>Recording for 30 seconds. Open an app that rotates, such as Safari, then turn the phone to the left, to the right and back upright, pausing at each. Then come back here and tap Share Log.</key>
+	<string>Запись в течение 30 секунд. Откройте приложение, которое поворачивается, например Safari, поверните телефон влево, вправо и обратно вертикально, задерживаясь в каждом положении. Затем вернитесь сюда и нажмите «Поделиться журналом».</string>
 	<key>Red</key>
 	<string>Красный</string>
+	<key>Rotation Test</key>
+	<string>Тест поворота</string>
 	<key>Rounded Square</key>
 	<string>Скруглённый квадрат</string>
 	<key>Selected</key>
 	<string>Выбранные</string>
 	<key>Set</key>
 	<string>Готово</string>
+	<key>Share Log</key>
+	<string>Поделиться журналом</string>
+	<key>Share Log creates a report for bug reports: the log, settings, jailbreak, device and iOS version, and the latest SpringBoard crash report if there is one. Record Rotation Test adds what SpringBoard does while the phone is turned.</key>
+	<string>«Поделиться журналом» создаёт отчёт для сообщений об ошибках: журнал, настройки, джейлбрейк, устройство и версию iOS, а также последний отчёт о сбое SpringBoard, если он есть. «Записать тест поворота» добавляет, что делает SpringBoard при повороте телефона.</string>
 	<key>Size</key>
 	<string>Размер</string>
+	<key>Status</key>
+	<string>Состояние</string>
 	<key>Tap to Cancel</key>
 	<string>Нажатие отменяет</string>
 	<key>Teal</key>
 	<string>Бирюзовый</string>
+	<key>Try Again</key>
+	<string>Повторить</string>
+	<key>Unsupported</key>
+	<string>Не поддерживается</string>
 	<key>Whitelisted Apps</key>
 	<string>Белый список</string>
 	<key>Whitelisted apps are the only ones the tweak acts in. Blacklisted apps rotate freely, as without the tweak. Always Show In is for apps that handle rotation themselves.</key>

@@ -4,6 +4,8 @@
 <dict>
 	<key>%</key>
 	<string>%</string>
+	<key>Active</key>
+	<string>動作中</string>
 	<key>Always Show In</key>
 	<string>常に表示するApp</string>
 	<key>Appearance</key>
@@ -28,6 +30,10 @@
 	<string>デフォルト</string>
 	<key>Delay</key>
 	<string>待ち時間</string>
+	<key>Detailed Logging</key>
+	<string>詳細なログ</string>
+	<key>Diagnostics</key>
+	<string>診断</string>
 	<key>Enabled</key>
 	<string>有効</string>
 	<key>Enter Value</key>
@@ -42,10 +48,18 @@
 	<string>非表示まで</string>
 	<key>Icon Color</key>
 	<string>アイコンの色</string>
+	<key>Not Running</key>
+	<string>未実行</string>
+	<key>OK</key>
+	<string>OK</string>
+	<key>Off</key>
+	<string>オフ</string>
 	<key>Opacity</key>
 	<string>不透明度</string>
 	<key>Orange</key>
 	<string>オレンジ</string>
+	<key>Paused</key>
+	<string>一時停止中</string>
 	<key>Pink</key>
 	<string>ピンク</string>
 	<key>Portrait on App Switch</key>
@@ -56,20 +70,36 @@
 	<string>位置は、画面の側面に沿ったステータスバーからの距離です。</string>
 	<key>Purple</key>
 	<string>紫</string>
+	<key>Record Rotation Test</key>
+	<string>回転テストを記録</string>
+	<key>Recording for 30 seconds. Open an app that rotates, such as Safari, then turn the phone to the left, to the right and back upright, pausing at each. Then come back here and tap Share Log.</key>
+	<string>30秒間記録します。Safariなど回転するAppを開き、端末を左、右、縦向きの順に回し、それぞれ少し止めてください。その後ここに戻り「ログを共有」をタップしてください。</string>
 	<key>Red</key>
 	<string>赤</string>
+	<key>Rotation Test</key>
+	<string>回転テスト</string>
 	<key>Rounded Square</key>
 	<string>角丸四角形</string>
 	<key>Selected</key>
 	<string>選択済み</string>
 	<key>Set</key>
 	<string>設定</string>
+	<key>Share Log</key>
+	<string>ログを共有</string>
+	<key>Share Log creates a report for bug reports: the log, settings, jailbreak, device and iOS version, and the latest SpringBoard crash report if there is one. Record Rotation Test adds what SpringBoard does while the phone is turned.</key>
+	<string>「ログを共有」は不具合報告用のレポートを作成します（ログ、設定、脱獄環境、デバイスとiOSバージョン、あれば最新のSpringBoardクラッシュレポート）。「回転テストを記録」は、端末を回したときのSpringBoardの動作を追加します。</string>
 	<key>Size</key>
 	<string>サイズ</string>
+	<key>Status</key>
+	<string>状態</string>
 	<key>Tap to Cancel</key>
 	<string>タップでキャンセル</string>
 	<key>Teal</key>
 	<string>ティール</string>
+	<key>Try Again</key>
+	<string>再試行</string>
+	<key>Unsupported</key>
+	<string>非対応</string>
 	<key>Whitelisted Apps</key>
 	<string>ホワイトリストのApp</string>
 	<key>Whitelisted apps are the only ones the tweak acts in. Blacklisted apps rotate freely, as without the tweak. Always Show In is for apps that handle rotation themselves.</key>

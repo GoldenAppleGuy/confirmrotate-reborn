@@ -5,7 +5,7 @@ include $(THEOS)/makefiles/common.mk
 
 BUNDLE_NAME = ConfirmRotateRebornPrefs
 ConfirmRotateRebornPrefs_FILES = CRRootListController.m
-ConfirmRotateRebornPrefs_CFLAGS = -fobjc-arc
+ConfirmRotateRebornPrefs_CFLAGS = -fobjc-arc -DCR_VERSION=\"$(shell grep '^Version:' ../control | cut -d' ' -f2)\"
 ConfirmRotateRebornPrefs_FRAMEWORKS = UIKit
 ConfirmRotateRebornPrefs_PRIVATE_FRAMEWORKS = Preferences
 ConfirmRotateRebornPrefs_LDFLAGS += -F$(THEOS)/sdks/iPhoneOS16.5.sdk/System/Library/PrivateFrameworks

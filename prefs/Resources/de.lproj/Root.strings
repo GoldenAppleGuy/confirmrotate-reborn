@@ -4,6 +4,8 @@
 <dict>
 	<key>%</key>
 	<string>%</string>
+	<key>Active</key>
+	<string>Aktiv</string>
 	<key>Always Show In</key>
 	<string>Immer anzeigen in</string>
 	<key>Appearance</key>
@@ -28,6 +30,10 @@
 	<string>Standard</string>
 	<key>Delay</key>
 	<string>Verzögerung</string>
+	<key>Detailed Logging</key>
+	<string>Detailliertes Protokoll</string>
+	<key>Diagnostics</key>
+	<string>Diagnose</string>
 	<key>Enabled</key>
 	<string>Aktiviert</string>
 	<key>Enter Value</key>
@@ -42,10 +48,18 @@
 	<string>Ausblenden nach</string>
 	<key>Icon Color</key>
 	<string>Symbolfarbe</string>
+	<key>Not Running</key>
+	<string>Nicht aktiv</string>
+	<key>OK</key>
+	<string>OK</string>
+	<key>Off</key>
+	<string>Aus</string>
 	<key>Opacity</key>
 	<string>Deckkraft</string>
 	<key>Orange</key>
 	<string>Orange</string>
+	<key>Paused</key>
+	<string>Pausiert</string>
 	<key>Pink</key>
 	<string>Pink</string>
 	<key>Portrait on App Switch</key>
@@ -56,20 +70,36 @@
 	<string>Die Position ist der Abstand zur Statusleiste entlang des Bildschirmrands.</string>
 	<key>Purple</key>
 	<string>Lila</string>
+	<key>Record Rotation Test</key>
+	<string>Drehtest aufzeichnen</string>
+	<key>Recording for 30 seconds. Open an app that rotates, such as Safari, then turn the phone to the left, to the right and back upright, pausing at each. Then come back here and tap Share Log.</key>
+	<string>Aufzeichnung für 30 Sekunden. Öffne eine App, die sich drehen lässt, z. B. Safari, und drehe das iPhone nach links, nach rechts und wieder aufrecht, jeweils mit einer kurzen Pause. Komm dann zurück und tippe auf „Protokoll teilen“.</string>
 	<key>Red</key>
 	<string>Rot</string>
+	<key>Rotation Test</key>
+	<string>Drehtest</string>
 	<key>Rounded Square</key>
 	<string>Abgerundetes Quadrat</string>
 	<key>Selected</key>
 	<string>Ausgewählt</string>
 	<key>Set</key>
 	<string>Übernehmen</string>
+	<key>Share Log</key>
+	<string>Protokoll teilen</string>
+	<key>Share Log creates a report for bug reports: the log, settings, jailbreak, device and iOS version, and the latest SpringBoard crash report if there is one. Record Rotation Test adds what SpringBoard does while the phone is turned.</key>
+	<string>„Protokoll teilen“ erstellt einen Bericht für Fehlermeldungen: Protokoll, Einstellungen, Jailbreak, Gerät und iOS-Version sowie den neuesten SpringBoard-Absturzbericht, falls vorhanden. „Drehtest aufzeichnen“ ergänzt, was SpringBoard beim Drehen des iPhone tut.</string>
 	<key>Size</key>
 	<string>Größe</string>
+	<key>Status</key>
+	<string>Status</string>
 	<key>Tap to Cancel</key>
 	<string>Tippen zum Abbrechen</string>
 	<key>Teal</key>
 	<string>Türkis</string>
+	<key>Try Again</key>
+	<string>Erneut versuchen</string>
+	<key>Unsupported</key>
+	<string>Nicht unterstützt</string>
 	<key>Whitelisted Apps</key>
 	<string>Apps auf der Whitelist</string>
 	<key>Whitelisted apps are the only ones the tweak acts in. Blacklisted apps rotate freely, as without the tweak. Always Show In is for apps that handle rotation themselves.</key>

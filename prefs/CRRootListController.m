@@ -7,7 +7,17 @@
 #import <dlfcn.h>
 #import <objc/runtime.h>
 #import <objc/message.h>
-#import <rootless.h>
+#import <sys/sysctl.h>
+
+#ifndef CR_VERSION
+#define CR_VERSION "?"
+#endif
+#define CR_DOMAIN CFSTR("com.goldenappleguy.confirmrotatereborn")
+#define CR_LOG_FILE @"/var/mobile/Documents/ConfirmRotateReborn/log.txt"
+#define CR_STATUS_FILE @"/var/mobile/Documents/ConfirmRotateReborn/status.plist"
+#define CR_RESPRING_NOTIFICATION CFSTR("com.goldenappleguy.confirmrotatereborn/respring")
+#define CR_ROTATION_TEST_NOTIFICATION CFSTR("com.goldenappleguy.confirmrotatereborn/rotationtest")
+#define CR_SURVEY_FILE @"/var/mobile/Documents/ConfirmRotateReborn/runtime.txt"
 
 @interface CRRootListController : PSListController
 - (void)refreshCounts;
@@ -24,6 +34,38 @@ static NSString *CRLocalized(NSString *key) {
 
 // Rows with "dependsOn" = AutoRotate are shown only while that switch is on, and rows with "hiddenBy" =
 // AutoRotate only while it is off
+// Where the jailbreak lives ("" rootful, "/var/jb" rootless, a .jbroot path on roothide), from where
+// this settings bundle was loaded
+static NSString *CRJailbreakRoot(void) {
+    NSString *path = [NSBundle bundleForClass:[CRRootListController class]].bundlePath ?: @"";
+    NSRange range = [path rangeOfString:@"/Library/PreferenceBundles/"];
+    return range.location != NSNotFound ? [path substringToIndex:range.location] : @"/var/jb";
+}
+
+// Only the type is reported: the actual folders carry per-device or random IDs (Dopamine's /var/jb
+// resolves to /private/preboot/<device ID>/..., roothide uses a random .jbroot folder)
+static NSString *CRJailbreakType(void) {
+    NSString *root = CRJailbreakRoot();
+    if (root.length == 0) return @"rootful";
+    if ([root containsString:@".jbroot"]) return @"roothide";
+    NSString *varJB = [[NSFileManager defaultManager] destinationOfSymbolicLinkAtPath:@"/var/jb" error:nil];
+    if ([root isEqualToString:@"/var/jb"] || [root hasPrefix:@"/private/preboot/"] || (varJB.length && [root hasPrefix:varJB])) return @"rootless";
+    return @"other";
+}
+
+static NSString *CRSysctlString(const char *name) {
+    size_t size = 0;
+    if (sysctlbyname(name, NULL, &size, NULL, 0) != 0 || size == 0) return @"?";
+    char *value = malloc(size);
+    NSString *result = sysctlbyname(name, value, &size, NULL, 0) == 0 ? @(value) : @"?";
+    free(value);
+    return result;
+}
+
+static NSDictionary *CRStatus(void) {
+    return [NSDictionary dictionaryWithContentsOfFile:CR_STATUS_FILE] ?: @{};
+}
+
 @implementation CRRootListController {
     NSArray<PSSpecifier *> *_autoRotateOptions; // shown while Auto-Rotate is on ("dependsOn")
     NSArray<PSSpecifier *> *_autoRotateHides;   // shown while it is off ("hiddenBy")
@@ -200,7 +242,7 @@ static void CRRegisterSelectedFirstListController(void) {
 
 + (void)initialize {
     if (self == [CRRootListController class]) {
-        dlopen(ROOT_PATH("/Library/Frameworks/AltList.framework/AltList"), RTLD_NOW);
+        dlopen([CRJailbreakRoot() stringByAppendingPathComponent:@"Library/Frameworks/AltList.framework/AltList"].fileSystemRepresentation, RTLD_NOW);
         CRRegisterSelectedFirstListController();
     }
 }
@@ -249,6 +291,11 @@ static void CRSettingsChanged(CFNotificationCenterRef center, void *observer, CF
         PSSpecifier *autoRotate = matching(@"key", @"AutoRotate").firstObject;
         BOOL on = autoRotate && [[self readPreferenceValue:autoRotate] boolValue];
         [specifiers removeObjectsInArray:on ? _autoRotateHides : _autoRotateOptions];
+        if (![CRStatus()[@"state"] isEqual:@"paused"]) { // Try Again only while the crash guard has paused the tweak
+            [specifiers filterUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(PSSpecifier *specifier, NSDictionary *bindings) {
+                return ![[specifier propertyForKey:@"id"] isEqual:@"TryAgain"];
+            }]];
+        }
         _specifiers = specifiers;
     }
     return _specifiers;
@@ -265,6 +312,119 @@ static void CRSettingsChanged(CFNotificationCenterRef center, void *observer, CF
     if (show.count && ![self containsSpecifier:show.firstObject]) [self insertContiguousSpecifiers:show afterSpecifier:specifier animated:YES];
 }
 
+
+#pragma mark - Diagnostics
+
+// Status row: whether the tweak runs, from the status file the tweak writes at startup
+- (id)statusText:(PSSpecifier *)specifier {
+    NSDictionary *status = CRStatus();
+    NSString *state = status[@"state"];
+    CFPreferencesAppSynchronize(CR_DOMAIN);
+    NSNumber *enabled = CFBridgingRelease(CFPreferencesCopyAppValue(CFSTR("Enabled"), CR_DOMAIN));
+    if ([state isEqual:@"active"]) return CRLocalized(enabled && !enabled.boolValue ? @"Off" : @"Active");
+    if ([state isEqual:@"paused"]) return CRLocalized(@"Paused");
+    if ([state isEqual:@"unsupported"]) return CRLocalized(@"Unsupported");
+    return CRLocalized(@"Not Running");
+}
+
+// Try Again: clear the crash guard and respring (the tweak listens for this even while paused)
+- (void)tryAgain:(PSSpecifier *)specifier {
+    [[NSFileManager defaultManager] removeItemAtPath:@"/var/mobile/Documents/ConfirmRotateReborn/guard" error:nil];
+    CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), CR_RESPRING_NOTIFICATION, NULL, NULL, YES);
+}
+
+// Record Rotation Test: the tweak logs SpringBoard's orientation calls for 30 s while the tester turns
+// the phone (works even where the tweak is otherwise unsupported)
+- (void)recordRotationTest:(PSSpecifier *)specifier {
+    CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), CR_ROTATION_TEST_NOTIFICATION, NULL, NULL, YES);
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:CRLocalized(@"Rotation Test")
+        message:CRLocalized(@"Recording for 30 seconds. Open an app that rotates, such as Safari, then turn the phone to the left, to the right and back upright, pausing at each. Then come back here and tap Share Log.")
+        preferredStyle:UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:CRLocalized(@"OK") style:UIAlertActionStyleDefault handler:nil]];
+    [self presentViewController:alert animated:YES completion:nil];
+}
+
+// Jailbreak and tweak support packages for the report, by name and version - never the list of installed tweaks
+static NSString *CRPackageReport(void) {
+    NSString *status = [NSString stringWithContentsOfFile:[CRJailbreakRoot() stringByAppendingPathComponent:@"var/lib/dpkg/status"] encoding:NSUTF8StringEncoding error:nil];
+    NSRegularExpression *support = [NSRegularExpression regularExpressionWithPattern:@"dopamine|palera1n|nathanlr|serotonin|xina|roothide|ellekit|libhooker|substitute|mobilesubstrate|preferenceloader|altlist|ccsupport|choicy" options:NSRegularExpressionCaseInsensitive error:nil];
+    NSMutableArray *lines = [NSMutableArray array];
+    for (NSString *entry in [status componentsSeparatedByString:@"\n\n"]) {
+        NSMutableDictionary *fields = [NSMutableDictionary dictionary];
+        for (NSString *line in [entry componentsSeparatedByString:@"\n"]) {
+            NSRange colon = [line rangeOfString:@": "];
+            if (colon.location != NSNotFound && ![line hasPrefix:@" "]) fields[[line substringToIndex:colon.location]] = [line substringFromIndex:colon.location + 2];
+        }
+        NSString *package = fields[@"Package"];
+        if (!package || ![fields[@"Status"] hasSuffix:@" installed"] || ![support firstMatchInString:package options:0 range:NSMakeRange(0, package.length)]) continue;
+        [lines addObject:[NSString stringWithFormat:@"  %@ %@", fields[@"Name"] ?: package, fields[@"Version"] ?: @"?"]];
+    }
+    return [NSString stringWithFormat:@"Jailbreak and tweak support:\n%@\n", [[lines sortedArrayUsingSelector:@selector(caseInsensitiveCompare:)] componentsJoinedByString:@"\n"]];
+}
+
+// Share Log: a report with what is needed to look into a problem, through the share sheet
+- (void)shareLog:(PSSpecifier *)specifier {
+    NSMutableString *report = [NSMutableString string];
+    NSDateFormatter *formatter = [NSDateFormatter new];
+    formatter.dateFormat = @"yyyy-MM-dd HH:mm:ss";
+    formatter.locale = [NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"];
+    NSDictionary *status = CRStatus();
+    [report appendFormat:@"ConfirmRotate Reborn report, %@\n\n", [formatter stringFromDate:[NSDate date]]];
+    [report appendFormat:@"Tweak version: %s (settings) / %@ (running)\n", CR_VERSION, status[@"version"] ?: @"?"];
+    [report appendFormat:@"Device: %@, iOS %@ (%@)\n", CRSysctlString("hw.machine"), [UIDevice currentDevice].systemVersion, CRSysctlString("kern.osversion")];
+    [report appendFormat:@"Jailbreak: %@\n", CRJailbreakType()];
+    [report appendFormat:@"Status: %@, method: %@\n", status[@"state"] ?: @"not running", status[@"method"] ?: @"none"];
+    NSString *guard = [NSString stringWithContentsOfFile:@"/var/mobile/Documents/ConfirmRotateReborn/guard" encoding:NSUTF8StringEncoding error:nil];
+    if (guard.length) [report appendFormat:@"Crash guard: %@\n", [guard stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]]];
+    NSArray *missing = status[@"missing"];
+    if (missing.count) [report appendFormat:@"Missing on this iOS: %@\n", [missing componentsJoinedByString:@"; "]];
+
+    [report appendString:@"\nSettings:\n"];
+    CFPreferencesAppSynchronize(CR_DOMAIN);
+    NSDictionary *settings = CFBridgingRelease(CFPreferencesCopyMultiple(NULL, CR_DOMAIN, kCFPreferencesCurrentUser, kCFPreferencesAnyHost));
+    for (NSString *key in [settings.allKeys sortedArrayUsingSelector:@selector(compare:)]) {
+        id value = settings[key];
+        NSString *text = [value isKindOfClass:[NSArray class]] ? [NSString stringWithFormat:@"[%@]", [value componentsJoinedByString:@", "]] : [value description];
+        [report appendFormat:@"  %@ = %@\n", key, [text stringByReplacingOccurrencesOfString:@"\n" withString:@" "]];
+    }
+
+    [report appendString:@"\n"];
+    [report appendString:CRPackageReport()];
+
+    [report appendString:@"\nLog:\n"];
+    [report appendString:[NSString stringWithContentsOfFile:CR_LOG_FILE encoding:NSUTF8StringEncoding error:nil] ?: @"(no log yet)\n"];
+
+    NSString *folder = [NSTemporaryDirectory() stringByAppendingPathComponent:@"ConfirmRotateReborn"];
+    [[NSFileManager defaultManager] removeItemAtPath:folder error:nil];
+    [[NSFileManager defaultManager] createDirectoryAtPath:folder withIntermediateDirectories:YES attributes:nil error:nil];
+    NSString *reportPath = [folder stringByAppendingPathComponent:@"ConfirmRotateReborn-report.txt"];
+    [report writeToFile:reportPath atomically:YES encoding:NSUTF8StringEncoding error:nil];
+    NSMutableArray *items = [NSMutableArray arrayWithObject:[NSURL fileURLWithPath:reportPath]];
+    NSString *surveyCopy = [folder stringByAppendingPathComponent:@"ConfirmRotateReborn-runtime.txt"];
+    if ([[NSFileManager defaultManager] copyItemAtPath:CR_SURVEY_FILE toPath:surveyCopy error:nil]) [items addObject:[NSURL fileURLWithPath:surveyCopy]];
+
+    // The latest SpringBoard crash report from the past week, if this app may read it
+    NSString *crashFolder = @"/var/mobile/Library/Logs/CrashReporter";
+    NSString *latest = nil;
+    NSDate *latestDate = [NSDate dateWithTimeIntervalSinceNow:-7 * 24 * 3600];
+    for (NSString *name in [[NSFileManager defaultManager] contentsOfDirectoryAtPath:crashFolder error:nil]) {
+        if (![name hasPrefix:@"SpringBoard"] || ![name hasSuffix:@".ips"]) continue;
+        NSDate *date = [[NSFileManager defaultManager] attributesOfItemAtPath:[crashFolder stringByAppendingPathComponent:name] error:nil].fileModificationDate;
+        if ([date compare:latestDate] == NSOrderedDescending) { latestDate = date; latest = name; }
+    }
+    if (latest) {
+        NSString *copy = [folder stringByAppendingPathComponent:latest];
+        if ([[NSFileManager defaultManager] copyItemAtPath:[crashFolder stringByAppendingPathComponent:latest] toPath:copy error:nil]) {
+            [items addObject:[NSURL fileURLWithPath:copy]];
+        }
+    }
+
+    UIActivityViewController *share = [[UIActivityViewController alloc] initWithActivityItems:items applicationActivities:nil];
+    UITableViewCell *cell = [self cachedCellForSpecifier:specifier];
+    share.popoverPresentationController.sourceView = cell ?: self.view;
+    share.popoverPresentationController.sourceRect = cell ? cell.bounds : CGRectMake(CGRectGetMidX(self.view.bounds), CGRectGetMidY(self.view.bounds), 1, 1);
+    [self presentViewController:share animated:YES completion:nil];
+}
 @end
 
 // Slider row whose value reads as a whole number (plus an optional "valueSuffix", or "zeroText" for 0,

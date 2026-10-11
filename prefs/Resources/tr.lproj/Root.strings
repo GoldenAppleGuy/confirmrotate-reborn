@@ -4,6 +4,8 @@
 <dict>
 	<key>%</key>
 	<string>%</string>
+	<key>Active</key>
+	<string>Etkin</string>
 	<key>Always Show In</key>
 	<string>Her Zaman Göster</string>
 	<key>Appearance</key>
@@ -28,6 +30,10 @@
 	<string>Varsayılan</string>
 	<key>Delay</key>
 	<string>Gecikme</string>
+	<key>Detailed Logging</key>
+	<string>Ayrıntılı Günlük</string>
+	<key>Diagnostics</key>
+	<string>Tanılama</string>
 	<key>Enabled</key>
 	<string>Etkin</string>
 	<key>Enter Value</key>
@@ -42,10 +48,18 @@
 	<string>Gizleme Süresi</string>
 	<key>Icon Color</key>
 	<string>Simge Rengi</string>
+	<key>Not Running</key>
+	<string>Çalışmıyor</string>
+	<key>OK</key>
+	<string>Tamam</string>
+	<key>Off</key>
+	<string>Kapalı</string>
 	<key>Opacity</key>
 	<string>Opaklık</string>
 	<key>Orange</key>
 	<string>Turuncu</string>
+	<key>Paused</key>
+	<string>Duraklatıldı</string>
 	<key>Pink</key>
 	<string>Pembe</string>
 	<key>Portrait on App Switch</key>
@@ -56,20 +70,36 @@
 	<string>Konum, ekranın kenarı boyunca durum çubuğuna olan uzaklıktır.</string>
 	<key>Purple</key>
 	<string>Mor</string>
+	<key>Record Rotation Test</key>
+	<string>Döndürme Testini Kaydet</string>
+	<key>Recording for 30 seconds. Open an app that rotates, such as Safari, then turn the phone to the left, to the right and back upright, pausing at each. Then come back here and tap Share Log.</key>
+	<string>30 saniye kaydediliyor. Safari gibi dönen bir uygulama açın, telefonu sola, sağa ve tekrar dik konuma çevirin, her birinde kısa bir süre bekleyin. Sonra buraya dönüp “Günlüğü Paylaş”a dokunun.</string>
 	<key>Red</key>
 	<string>Kırmızı</string>
+	<key>Rotation Test</key>
+	<string>Döndürme Testi</string>
 	<key>Rounded Square</key>
 	<string>Yuvarlatılmış Kare</string>
 	<key>Selected</key>
 	<string>Seçilenler</string>
 	<key>Set</key>
 	<string>Ayarla</string>
+	<key>Share Log</key>
+	<string>Günlüğü Paylaş</string>
+	<key>Share Log creates a report for bug reports: the log, settings, jailbreak, device and iOS version, and the latest SpringBoard crash report if there is one. Record Rotation Test adds what SpringBoard does while the phone is turned.</key>
+	<string>“Günlüğü Paylaş” hata bildirimi için bir rapor oluşturur: günlük, ayarlar, jailbreak, aygıt ve iOS sürümü ile varsa en son SpringBoard çökme raporu. “Döndürme Testini Kaydet”, telefon döndürülürken SpringBoard’un yaptıklarını ekler.</string>
 	<key>Size</key>
 	<string>Boyut</string>
+	<key>Status</key>
+	<string>Durum</string>
 	<key>Tap to Cancel</key>
 	<string>Dokunarak İptal</string>
 	<key>Teal</key>
 	<string>Camgöbeği</string>
+	<key>Try Again</key>
+	<string>Tekrar Dene</string>
+	<key>Unsupported</key>
+	<string>Desteklenmiyor</string>
 	<key>Whitelisted Apps</key>
 	<string>Beyaz Listedeki Uygulamalar</string>
 	<key>Whitelisted apps are the only ones the tweak acts in. Blacklisted apps rotate freely, as without the tweak. Always Show In is for apps that handle rotation themselves.</key>

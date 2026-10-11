@@ -20,12 +20,26 @@
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
 #import <math.h>
-#import <rootless.h>
+#import <dlfcn.h>
+#import <sys/sysctl.h>
+#import <objc/message.h>
+#import <sys/stat.h>
 
 #define CR_PREFS_DOMAIN CFSTR("com.goldenappleguy.confirmrotatereborn")
 #define CR_PREFS_CHANGED "com.goldenappleguy.confirmrotatereborn/changed"
-#define CR_DEBUG_FLAG @"/var/mobile/Documents/confirmrotate.debug" // present: write the log below
-#define CR_DEBUG_LOG @"/var/mobile/Documents/confirmrotate.log"
+#ifndef CR_VERSION
+#define CR_VERSION "?"
+#endif
+// Log and status, shared through the settings page (Diagnostics > Share Log)
+#define CR_LOG_DIR @"/var/mobile/Documents/ConfirmRotateReborn"
+#define CR_LOG_FILE CR_LOG_DIR @"/log.txt"
+#define CR_STATUS_FILE CR_LOG_DIR @"/status.plist"
+#define CR_GUARD_FILE "/var/mobile/Documents/ConfirmRotateReborn/guard" // crash-loop guard (plain text, see CRCrashGuardTripped)
+#define CR_LOG_LIMIT (256 * 1024)          // bytes; the oldest half is dropped beyond this
+#define CR_RESPRING_NOTIFICATION "com.goldenappleguy.confirmrotatereborn/respring"
+#define CR_ROTATION_TEST_NOTIFICATION "com.goldenappleguy.confirmrotatereborn/rotationtest"
+#define CR_SURVEY_FILE CR_LOG_DIR @"/runtime.txt"
+#define CR_ROTATION_TEST_SECONDS 30.0
 
 @interface SBOrientationLockManager : NSObject
 + (instancetype)sharedInstance;
@@ -125,24 +139,105 @@
 - (void)prefsChanged;
 @end
 
-// Debug log, written only while CR_DEBUG_FLAG exists (read over SSH)
-static BOOL gDebugLog;
+// Log: CRLogInfo always (startup, checks, settings, actions, problems); CRLog only with Detailed Logging
+// on (every orientation event). Written on a background queue, kept under CR_LOG_LIMIT.
+static BOOL gDetailedLog;
 
-static void CRLog(NSString *format, ...) NS_FORMAT_FUNCTION(1, 2);
-static void CRLog(NSString *format, ...) {
-    if (!gDebugLog) return;
+static void CRWriteLogLine(NSString *line) {
+    static dispatch_queue_t queue;
+    static NSDateFormatter *formatter;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        queue = dispatch_queue_create("com.goldenappleguy.confirmrotatereborn.log", DISPATCH_QUEUE_SERIAL);
+        formatter = [NSDateFormatter new];
+        formatter.dateFormat = @"yyyy-MM-dd HH:mm:ss.SSS";
+        formatter.locale = [NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"];
+    });
+    NSString *stamped = [NSString stringWithFormat:@"%@ %@\n", [formatter stringFromDate:[NSDate date]], line];
+    dispatch_async(queue, ^{
+        NSFileManager *files = [NSFileManager defaultManager];
+        [files createDirectoryAtPath:CR_LOG_DIR withIntermediateDirectories:YES attributes:nil error:nil];
+        NSDictionary *attributes = [files attributesOfItemAtPath:CR_LOG_FILE error:nil];
+        if ([attributes fileSize] > CR_LOG_LIMIT) { // keep the newer half
+            NSData *data = [NSData dataWithContentsOfFile:CR_LOG_FILE];
+            NSData *tail = [data subdataWithRange:NSMakeRange(data.length / 2, data.length - data.length / 2)];
+            [tail writeToFile:CR_LOG_FILE atomically:YES];
+        }
+        NSFileHandle *handle = [NSFileHandle fileHandleForWritingAtPath:CR_LOG_FILE];
+        if (!handle) {
+            [files createFileAtPath:CR_LOG_FILE contents:nil attributes:nil];
+            handle = [NSFileHandle fileHandleForWritingAtPath:CR_LOG_FILE];
+        }
+        [handle seekToEndOfFile];
+        [handle writeData:[stamped dataUsingEncoding:NSUTF8StringEncoding]];
+        [handle closeFile];
+    });
+}
+
+static void CRLogInfo(NSString *format, ...) NS_FORMAT_FUNCTION(1, 2);
+static void CRLogInfo(NSString *format, ...) {
     va_list args;
     va_start(args, format);
     NSString *line = [[NSString alloc] initWithFormat:format arguments:args];
     va_end(args);
-    NSFileHandle *handle = [NSFileHandle fileHandleForWritingAtPath:CR_DEBUG_LOG];
-    if (!handle) {
-        [[NSFileManager defaultManager] createFileAtPath:CR_DEBUG_LOG contents:nil attributes:nil];
-        handle = [NSFileHandle fileHandleForWritingAtPath:CR_DEBUG_LOG];
-    }
-    [handle seekToEndOfFile];
-    [handle writeData:[[line stringByAppendingString:@"\n"] dataUsingEncoding:NSUTF8StringEncoding]];
-    [handle closeFile];
+    CRWriteLogLine(line);
+}
+
+static void CRLog(NSString *format, ...) NS_FORMAT_FUNCTION(1, 2);
+static void CRLog(NSString *format, ...) {
+    if (!gDetailedLog) return;
+    va_list args;
+    va_start(args, format);
+    NSString *line = [[NSString alloc] initWithFormat:format arguments:args];
+    va_end(args);
+    CRWriteLogLine(line);
+}
+
+// Where the jailbreak lives ("" rootful, "/var/jb" rootless, a .jbroot path on roothide), from where
+// this dylib was loaded: the tweak's other files (settings bundle, translations) are under it
+static NSString *CRJailbreakRoot(void) {
+    static NSString *root;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        Dl_info info;
+        NSString *path = dladdr((const void *)&CRJailbreakRoot, &info) && info.dli_fname ? @(info.dli_fname) : @"";
+        root = @"/var/jb";
+        for (NSString *marker in @[@"/Library/MobileSubstrate/DynamicLibraries/", @"/usr/lib/TweakInject/"]) {
+            NSRange range = [path rangeOfString:marker];
+            if (range.location != NSNotFound) { root = [path substringToIndex:range.location]; break; }
+        }
+    });
+    return root;
+}
+
+// Only the type is reported: the actual folders carry per-device or random IDs (Dopamine's /var/jb
+// resolves to /private/preboot/<device ID>/..., roothide uses a random .jbroot folder)
+static NSString *CRJailbreakType(void) {
+    NSString *root = CRJailbreakRoot();
+    if (root.length == 0) return @"rootful";
+    if ([root containsString:@".jbroot"]) return @"roothide";
+    NSString *varJB = [[NSFileManager defaultManager] destinationOfSymbolicLinkAtPath:@"/var/jb" error:nil];
+    if ([root isEqualToString:@"/var/jb"] || [root hasPrefix:@"/private/preboot/"] || (varJB.length && [root hasPrefix:varJB])) return @"rootless";
+    return @"other";
+}
+
+static NSString *CRSysctlString(const char *name) {
+    size_t size = 0;
+    if (sysctlbyname(name, NULL, &size, NULL, 0) != 0 || size == 0) return @"?";
+    char *value = malloc(size);
+    NSString *result = sysctlbyname(name, value, &size, NULL, 0) == 0 ? @(value) : @"?";
+    free(value);
+    return result;
+}
+
+// Status for the settings page: which method runs, or why the tweak is inactive
+static void CRWriteStatus(NSString *state, NSString *method, NSArray<NSString *> *missing) {
+    NSDictionary *status = @{
+        @"state": state, @"method": method ?: @"none", @"missing": missing ?: @[],
+        @"version": @CR_VERSION, @"updated": [NSDate date],
+    };
+    [[NSFileManager defaultManager] createDirectoryAtPath:CR_LOG_DIR withIntermediateDirectories:YES attributes:nil error:nil];
+    [status writeToFile:CR_STATUS_FILE atomically:YES];
 }
 
 static CRWindow *gWindow;
@@ -233,7 +328,6 @@ static BOOL CRSetFrontBundle(NSString *bundle) {
 }
 
 static void CRLoadPrefs(void) {
-    gDebugLog = [[NSFileManager defaultManager] fileExistsAtPath:CR_DEBUG_FLAG];
     CFPreferencesAppSynchronize(CR_PREFS_DOMAIN);
     gEnabled = CRPrefNumber(CFSTR("Enabled"), 1, 0, 1) != 0;
     gPortraitOnAppSwitch = CRPrefNumber(CFSTR("PortraitOnAppSwitch"), 0, 0, 1) != 0;
@@ -255,6 +349,7 @@ static void CRLoadPrefs(void) {
     gAutoRotateAfter = autoRotateOn ? round(CRPrefNumber(CFSTR("AutoRotateAfter"), 3, 1, 10)) : 0;
     gTapToCancel = CRPrefNumber(CFSTR("TapToCancel"), 1, 0, 1) != 0;
     gHaptics = CRPrefNumber(CFSTR("Haptics"), 1, 0, 1) != 0;
+    gDetailedLog = CRPrefNumber(CFSTR("DetailedLogging"), 0, 0, 1) != 0;
     gAlwaysShowApps = CRPrefAppSet(CFSTR("AlwaysShowApps"));
     gWhitelistApps = CRPrefAppSet(CFSTR("WhitelistApps"));
     gBlacklistApps = CRPrefAppSet(CFSTR("BlacklistApps"));
@@ -265,7 +360,9 @@ static void CRLoadPrefs(void) {
 static NSString *CRLocalized(NSString *key) {
     static NSBundle *bundle;
     static dispatch_once_t once;
-    dispatch_once(&once, ^{ bundle = [NSBundle bundleWithPath:ROOT_PATH_NS(@"/Library/PreferenceBundles/ConfirmRotateRebornPrefs.bundle")]; });
+    dispatch_once(&once, ^{
+        bundle = [NSBundle bundleWithPath:[CRJailbreakRoot() stringByAppendingPathComponent:@"Library/PreferenceBundles/ConfirmRotateRebornPrefs.bundle"]];
+    });
     return bundle ? [bundle localizedStringForKey:key value:key table:@"Tweak"] : key;
 }
 
@@ -284,6 +381,12 @@ static UIColor *CRAccentColor(void) {
 
 static SBOrientationLockManager *CRLockManager(void) {
     return [objc_getClass("SBOrientationLockManager") sharedInstance];
+}
+
+// The user's own rotation lock (checked at startup to exist)
+static BOOL CRUserLocked(void) {
+    SBOrientationLockManager *manager = CRLockManager();
+    return [manager respondsToSelector:@selector(isUserLocked)] && [manager isUserLocked];
 }
 
 static UIInterfaceOrientation CRActiveOrientation(void) {
@@ -468,7 +571,7 @@ static void CRHide(BOOL animated) {
 
 static void CRConfirm(void) {
     if (!gShown) return;
-    CRLog(@"confirmed");
+    CRLogInfo(@"confirmed: rotating to %ld", (long)gTarget);
     CRHaptic(UIImpactFeedbackStyleMedium);
     UIInterfaceOrientation target = gTarget;
     CRHide(YES);
@@ -491,7 +594,7 @@ static void CRConfirmAndBlacklist(void) {
         CRConfirm();
         return;
     }
-    CRLog(@"blacklisting %@", gFrontBundle);
+    CRLogInfo(@"long press: rotating and blacklisting %@", gFrontBundle);
     NSMutableArray *list = [gBlacklistApps.allObjects mutableCopy];
     if (![list containsObject:gFrontBundle]) [list addObject:gFrontBundle];
     CFPreferencesSetAppValue(CFSTR("BlacklistApps"), (__bridge CFArrayRef)list, CR_PREFS_DOMAIN);
@@ -737,7 +840,7 @@ static void CRShow(UIDeviceOrientation device, UIInterfaceOrientation target) {
 }
 
 static void CRLogPrefs(void) {
-    CRLog(@"prefs: enabled=%d appSwitch=%d size=%.0f opacity=%.2f color=%@ hide=%.0f auto=%.0f cancel=%d haptics=%d always=%@ white=%@ black=%@ (front %@, excluded %d)",
+    CRLogInfo(@"settings: enabled=%d appSwitch=%d size=%.0f opacity=%.2f color=%@ hide=%.0f auto=%.0f cancel=%d haptics=%d always=%@ white=%@ black=%@ (front %@, excluded %d)",
           gEnabled, gPortraitOnAppSwitch, gButtonSize, gButtonOpacity, gIconColor, gHideAfter, gAutoRotateAfter, gTapToCancel, gHaptics,
           [gAlwaysShowApps.allObjects componentsJoinedByString:@","], [gWhitelistApps.allObjects componentsJoinedByString:@","],
           [gBlacklistApps.allObjects componentsJoinedByString:@","], gFrontBundle, gExcluded);
@@ -764,13 +867,16 @@ static NSString *CRCurrentFrontBundle(void) {
 }
 
 - (void)start {
-    if (gLegacy) gRawDevice = (UIDeviceOrientation)[(SpringBoard *)[UIApplication sharedApplication] rawDeviceOrientationIgnoringOrientationLocks];
+    SpringBoard *springBoard = (SpringBoard *)[UIApplication sharedApplication];
+    if (gLegacy && [springBoard respondsToSelector:@selector(rawDeviceOrientationIgnoringOrientationLocks)]) {
+        gRawDevice = (UIDeviceOrientation)[springBoard rawDeviceOrientationIgnoringOrientationLocks];
+    }
     CRLoadPrefs();
     CRSetFrontBundle(CRCurrentFrontBundle());
     CRLogPrefs();
-    if (CREnabled() && ![CRLockManager() isUserLocked]) CRHold(CRActiveOrientation());
+    if (CREnabled() && !CRUserLocked()) CRHold(CRActiveOrientation());
     gStarted = YES;
-    CRLog(@"started (%@ path, locked=%d, orientation=%ld)", gLegacy ? @"iOS 15" : @"iOS 17", [CRLockManager() isUserLocked], (long)gRawDevice);
+    CRLogInfo(@"started (%@ method, rotation lock %@, orientation %ld)", gLegacy ? @"iOS 15" : @"iOS 17", CRUserLocked() ? @"on" : @"off", (long)gRawDevice);
 }
 
 - (void)prefsChanged {
@@ -783,7 +889,7 @@ static NSString *CRCurrentFrontBundle(void) {
     if (!CREnabled()) {
         CRRelease();
         CRHide(NO);
-    } else if (![CRLockManager() isUserLocked]) {
+    } else if (!CRUserLocked()) {
         CRHold(CRActiveOrientation());
     }
 }
@@ -799,7 +905,7 @@ static NSString *CRCurrentFrontBundle(void) {
 }
 
 - (void)evaluate {
-    if (!CREnabled() || [CRLockManager() isUserLocked]) { // off, or the user's own lock is on
+    if (!CREnabled() || CRUserLocked()) { // off, or the user's own lock is on
         CRRelease();
         CRHide(NO);
         return;
@@ -863,7 +969,7 @@ static void CRLayoutTransitionBegan(SBLayoutStateTransitionContext *context) {
     NSString *from = CRPrimaryScene([context fromLayoutState]), *to = CRPrimaryScene([context toLayoutState]);
     if ([from isEqualToString:to]) return;
     BOOL exclusionChanged = CRSetFrontBundle(CRBundleForScene(to));
-    BOOL active = gStarted && CREnabled() && ![CRLockManager() isUserLocked];
+    BOOL active = gStarted && CREnabled() && !CRUserLocked();
     if (gExcluded) {
         CRLog(@"app switch to %@: excluded", gFrontBundle);
         CRHide(NO);
@@ -882,41 +988,102 @@ static void CRLayoutTransitionBegan(SBLayoutStateTransitionContext *context) {
 }
 
 // iOS 17: the traits pipeline
+static BOOL gInputsBroken; // an unexpected error rewriting the inputs: stop rewriting them, never crash
+
+// The pipeline's inputs with the device orientation replaced by the held one. The initializers differ
+// between iOS versions, so the first that exists is used; failing that, a copy with only the orientation
+// field set (only when the copy is a separate object, so SpringBoard's own inputs are never changed).
+// Returns the inputs unchanged if none applies.
+static id CRCopyWithIvar(id object, const char *name, void (^set)(id copy, Ivar ivar)) {
+    Ivar ivar = object ? class_getInstanceVariable([object class], name) : NULL;
+    if (!ivar || ![object conformsToProtocol:@protocol(NSCopying)]) return nil;
+    id copy = [object copy];
+    if (copy == object) return nil; // immutable classes may return themselves
+    set(copy, ivar);
+    return copy;
+}
+
+static id CRInputsWithOrientation(id inputs, long long orientation) {
+    static NSString *usedMethod;
+    Class orientationClass = objc_getClass("TRAArbitrationDeviceOrientationInputs");
+    id held = nil;
+    if ([orientationClass instancesRespondToSelector:@selector(initWithCurrentDeviceOrientation:nonFlatDeviceOrientation:)]) {
+        held = [[orientationClass alloc] initWithCurrentDeviceOrientation:orientation nonFlatDeviceOrientation:orientation];
+    } else {
+        held = CRCopyWithIvar([inputs deviceOrientationInputs], "_currentDeviceOrientation", ^(id copy, Ivar ivar) {
+            *(long long *)((__bridge void *)copy + ivar_getOffset(ivar)) = orientation;
+            Ivar nonFlat = class_getInstanceVariable([copy class], "_nonFlatDeviceOrientation");
+            if (nonFlat) *(long long *)((__bridge void *)copy + ivar_getOffset(nonFlat)) = orientation;
+        });
+    }
+    if (!held) return inputs;
+
+    Class inputsClass = [inputs class];
+    id result = nil;
+    NSString *method = nil;
+    SEL withStyleAndAmbient = NSSelectorFromString(@"initWithInterfaceIdiomInputs:userInterfaceStyleInputs:deviceOrientationInputs:keyboardInputs:ambientPresentationInputs:");
+    SEL withStyle = NSSelectorFromString(@"initWithInterfaceIdiomInputs:userInterfaceStyleInputs:deviceOrientationInputs:keyboardInputs:");
+    SEL withAmbient = NSSelectorFromString(@"initWithInterfaceIdiomInputs:deviceOrientationInputs:keyboardInputs:ambientPresentationInputs:");
+    SEL plain = NSSelectorFromString(@"initWithInterfaceIdiomInputs:deviceOrientationInputs:keyboardInputs:");
+    id (*send4)(id, SEL, id, id, id, id) = (id (*)(id, SEL, id, id, id, id))objc_msgSend;
+    id (*send5)(id, SEL, id, id, id, id, id) = (id (*)(id, SEL, id, id, id, id, id))objc_msgSend;
+    id (*send3)(id, SEL, id, id, id) = (id (*)(id, SEL, id, id, id))objc_msgSend;
+    id idiom = [inputs respondsToSelector:@selector(interfaceIdiomInputs)] ? [inputs interfaceIdiomInputs] : nil;
+    id style = [inputs respondsToSelector:@selector(userInterfaceStyleInputs)] ? [inputs userInterfaceStyleInputs] : nil;
+    id keyboard = [inputs respondsToSelector:@selector(keyboardInputs)] ? [inputs keyboardInputs] : nil;
+    id ambient = [inputs respondsToSelector:@selector(ambientPresentationInputs)] ? [inputs ambientPresentationInputs] : nil;
+    if ([inputsClass instancesRespondToSelector:withStyleAndAmbient] && [inputs respondsToSelector:@selector(ambientPresentationInputs)]) {
+        result = send5([inputsClass alloc], withStyleAndAmbient, idiom, style, held, keyboard, ambient); method = @"initializer with style and ambient";
+    } else if ([inputsClass instancesRespondToSelector:withStyle]) {
+        result = send4([inputsClass alloc], withStyle, idiom, style, held, keyboard); method = @"initializer with style";
+    } else if ([inputsClass instancesRespondToSelector:withAmbient] && [inputs respondsToSelector:@selector(ambientPresentationInputs)]) {
+        result = send4([inputsClass alloc], withAmbient, idiom, held, keyboard, ambient); method = @"initializer with ambient";
+    } else if ([inputsClass instancesRespondToSelector:plain]) {
+        result = send3([inputsClass alloc], plain, idiom, held, keyboard); method = @"plain initializer";
+    } else {
+        result = CRCopyWithIvar(inputs, "_deviceOrientationInputs", ^(id copy, Ivar ivar) { object_setIvar(copy, ivar, held); });
+        method = @"copy";
+    }
+    if (!usedMethod) {
+        usedMethod = result ? method : @"none";
+        CRLogInfo(@"rotation inputs rewritten with: %@", usedMethod);
+    }
+    return result ?: inputs;
+}
+
 %group Modern
-%hook SBTraitsPipelineManager
-- (id)initWithArbiter:(id)arbiter sceneDelegate:(id)delegate {
-    id result = %orig;
-    gPipelineManager = result;
-    return result;
-}
-%end
-
 %hook SBTraitsEmbeddedDisplayPipelineManager
-- (void)layoutStateTransitionCoordinator:(id)coordinator transitionDidBeginWithTransitionContext:(SBLayoutStateTransitionContext *)context {
-    if (self == gPipelineManager) CRLayoutTransitionBegan(context);
-    %orig;
-}
-
 // The pipeline's inputs: the physical orientation is read here (UIDevice in SpringBoard only follows
 // the interface), and while holding it is replaced by the held orientation. The user's own lock is
 // applied later in the pipeline, so it still wins.
 - (TRAArbitrationInputs *)inputs {
     TRAArbitrationInputs *inputs = %orig;
-    if (self != gPipelineManager || ![inputs respondsToSelector:@selector(deviceOrientationInputs)]) return inputs;
-
-    UIDeviceOrientation raw = (UIDeviceOrientation)[[inputs deviceOrientationInputs] currentDeviceOrientation];
-    if (raw != gRawDevice) {
-        gRawDevice = raw;
-        dispatch_async(dispatch_get_main_queue(), ^{ [[CRController shared] deviceOrientationChanged]; });
+    if (!gPipelineManager) gPipelineManager = self;
+    if (self != gPipelineManager || gInputsBroken || ![inputs respondsToSelector:@selector(deviceOrientationInputs)]) return inputs;
+    @try {
+        UIDeviceOrientation raw = (UIDeviceOrientation)[[inputs deviceOrientationInputs] currentDeviceOrientation];
+        if (raw != gRawDevice) {
+            gRawDevice = raw;
+            dispatch_async(dispatch_get_main_queue(), ^{ [[CRController shared] deviceOrientationChanged]; });
+        }
+        if (!gHolding || gExcluded) return inputs;
+        // UIKit's interface and device orientation enums share raw values (landscape names swapped)
+        return CRInputsWithOrientation(inputs, gHeld);
+    } @catch (NSException *exception) {
+        gInputsBroken = YES;
+        CRLogInfo(@"ERROR rewriting the rotation inputs, hold switched off: %@ %@", exception.name, exception.reason);
+        return inputs;
     }
-    if (!gHolding || gExcluded) return inputs;
+}
+%end
+%end
 
-    // UIKit's interface and device orientation enums share raw values (landscape names swapped)
-    TRAArbitrationDeviceOrientationInputs *held = [[objc_getClass("TRAArbitrationDeviceOrientationInputs") alloc]
-        initWithCurrentDeviceOrientation:gHeld nonFlatDeviceOrientation:gHeld];
-    return [[objc_getClass("TRAArbitrationInputs") alloc] initWithInterfaceIdiomInputs:[inputs interfaceIdiomInputs]
-        userInterfaceStyleInputs:[inputs userInterfaceStyleInputs] deviceOrientationInputs:held
-        keyboardInputs:[inputs keyboardInputs] ambientPresentationInputs:[inputs ambientPresentationInputs]];
+// App switches on iOS 17 (optional: only hooked when the method exists)
+%group ModernTransitions
+%hook SBTraitsEmbeddedDisplayPipelineManager
+- (void)layoutStateTransitionCoordinator:(id)coordinator transitionDidBeginWithTransitionContext:(SBLayoutStateTransitionContext *)context {
+    if (self == gPipelineManager) CRLayoutTransitionBegan(context);
+    %orig;
 }
 %end
 %end
@@ -938,7 +1105,10 @@ static void CRLayoutTransitionBegan(SBLayoutStateTransitionContext *context) {
     %orig;
 }
 %end
+%end
 
+// App switches on iOS 15 (optional)
+%group LegacyTransitions
 %hook SBLayoutStateTransitionCoordinator
 - (void)beginTransitionForWorkspaceTransaction:(id)transaction {
     %orig;
@@ -951,16 +1121,345 @@ static void CRPrefsChangedCallback(CFNotificationCenterRef center, void *observe
     dispatch_async(dispatch_get_main_queue(), ^{ [[CRController shared] prefsChanged]; });
 }
 
-%ctor {
-    // iOS 17's traits pipeline, or else the older path through -[SpringBoard _deviceOrientationChanged:]
-    gLegacy = !objc_getClass("SBTraitsEmbeddedDisplayPipelineManager");
-    if (gLegacy && ![objc_getClass("SpringBoard") instancesRespondToSelector:@selector(_deviceOrientationChanged:)]) return;
-    CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, CRPrefsChangedCallback,
-                                    CFSTR(CR_PREFS_CHANGED), NULL, CFNotificationSuspensionBehaviorCoalesce);
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(6.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        [[CRController shared] start];
+// Runtime survey, for iOS versions the tweak doesn't know yet: SpringBoard's orientation-related classes
+// and the methods of the key ones, written to runtime.txt (attached by Share Log). Read-only; once per
+// tweak version and iOS build.
+static void CRAppendClass(NSMutableString *out, Class cls, NSString *filter) {
+    [out appendFormat:@"\n== %s : %s\n", class_getName(cls), class_getSuperclass(cls) ? class_getName(class_getSuperclass(cls)) : "-"];
+    for (int meta = 0; meta < 2; meta++) {
+        unsigned int count = 0;
+        Method *methods = class_copyMethodList(meta ? object_getClass(cls) : cls, &count);
+        for (unsigned int i = 0; i < count; i++) {
+            NSString *name = NSStringFromSelector(method_getName(methods[i]));
+            if (filter && [name rangeOfString:filter options:NSCaseInsensitiveSearch | NSRegularExpressionSearch].location == NSNotFound) continue;
+            [out appendFormat:@"%c %@ %s\n", meta ? '+' : '-', name, method_getTypeEncoding(methods[i]) ?: ""];
+        }
+        free(methods);
+    }
+    unsigned int count = 0;
+    Ivar *ivars = class_copyIvarList(cls, &count);
+    for (unsigned int i = 0; i < count; i++) [out appendFormat:@"  ivar %s %s\n", ivar_getName(ivars[i]), ivar_getTypeEncoding(ivars[i]) ?: ""];
+    free(ivars);
+}
+
+static void CRWriteRuntimeSurvey(void) {
+    NSString *stamp = [NSString stringWithFormat:@"%s %@", CR_VERSION, CRSysctlString("kern.osversion")];
+    NSString *existing = [NSString stringWithContentsOfFile:CR_SURVEY_FILE encoding:NSUTF8StringEncoding error:nil];
+    if ([existing hasPrefix:[NSString stringWithFormat:@"runtime survey %@\n", stamp]]) return;
+
+    NSMutableString *out = [NSMutableString stringWithFormat:@"runtime survey %@\n", stamp];
+    NSRegularExpression *interesting = [NSRegularExpression regularExpressionWithPattern:@"orientation|rotat|traits|^TRA[A-Z]|arbit|LayoutStateTransition" options:NSRegularExpressionCaseInsensitive error:nil];
+    NSRegularExpression *key = [NSRegularExpression regularExpressionWithPattern:@"PipelineManager|Arbiter$|ArbitrationInputs$|DeviceOrientationInputs$|InputsValidator$|OrientationLock|DeviceOrientationUpdateManager|LayoutStateTransition(Coordinator|Context)$" options:0 error:nil];
+    NSMutableArray<NSString *> *keyClasses = [NSMutableArray array];
+    [out appendString:@"\n-- classes (framework :: class)\n"];
+    unsigned int imageCount = 0;
+    const char **images = objc_copyImageNames(&imageCount);
+    for (unsigned int i = 0; i < imageCount; i++) {
+        const char *image = images[i];
+        if (!strstr(image, "SpringBoard") && !strstr(image, "FrontBoard") && !strstr(image, "Traits") && !strstr(image, "BackBoard")) continue;
+        unsigned int classCount = 0;
+        const char **names = objc_copyClassNamesForImage(image, &classCount);
+        for (unsigned int j = 0; j < classCount; j++) {
+            NSString *name = @(names[j]);
+            NSRange all = NSMakeRange(0, name.length);
+            if (![interesting firstMatchInString:name options:0 range:all]) continue;
+            const char *slash = strrchr(image, '/');
+            [out appendFormat:@"%s :: %@\n", slash ? slash + 1 : image, name];
+            if ([key firstMatchInString:name options:0 range:all] && keyClasses.count < 40) [keyClasses addObject:name];
+        }
+        free(names);
+    }
+    free(images);
+    [out appendString:@"\n-- SpringBoard orientation methods"];
+    CRAppendClass(out, objc_getClass("SpringBoard"), @"rient|otat");
+    [out appendString:@"\n-- key classes"];
+    for (NSString *name in keyClasses) CRAppendClass(out, objc_getClass(name.UTF8String), nil);
+    [[NSFileManager defaultManager] createDirectoryAtPath:CR_LOG_DIR withIntermediateDirectories:YES attributes:nil error:nil];
+    [out writeToFile:CR_SURVEY_FILE atomically:YES encoding:NSUTF8StringEncoding error:nil];
+    CRLogInfo(@"runtime survey written (%lu classes listed, %lu in detail)", (unsigned long)[out componentsSeparatedByString:@" :: "].count - 1, (unsigned long)keyClasses.count);
+}
+
+// Rotation test (Settings > Diagnostics > Record Rotation Test): for 30 s, the orientation methods
+// SpringBoard calls are logged as they happen. The hooks below only log and pass everything through;
+// each is installed only where the method exists with the expected argument types.
+static BOOL gTracing;
+
+static void CRTrace(NSString *format, ...) NS_FORMAT_FUNCTION(1, 2);
+static void CRTrace(NSString *format, ...) {
+    if (!gTracing) return;
+    va_list args;
+    va_start(args, format);
+    NSString *line = [[NSString alloc] initWithFormat:format arguments:args];
+    va_end(args);
+    CRWriteLogLine([@"trace: " stringByAppendingString:line]);
+}
+
+static void CRRotationTestRequested(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef info) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        static NSUInteger token;
+        NSUInteger mine = ++token;
+        gTracing = YES;
+        CRLogInfo(@"rotation test: recording for %.0f s (active orientation %ld, physical %ld, holding %d at %ld, rotation lock %@)",
+                  CR_ROTATION_TEST_SECONDS, (long)CRActiveOrientation(), (long)gRawDevice, gHolding, (long)gHeld, CRUserLocked() ? @"on" : @"off");
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(CR_ROTATION_TEST_SECONDS * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            if (mine != token) return;
+            gTracing = NO;
+            CRLogInfo(@"rotation test: done (active orientation %ld)", (long)CRActiveOrientation());
+        });
     });
-    %init(Common);
-    if (gLegacy) %init(Legacy);
-    else %init(Modern);
+}
+
+// Whether a method exists with the given type encoding (offsets ignored), e.g. "v@:q". Plain C: it runs
+// in the constructor, while SpringBoard is still loading.
+static BOOL CRHasMethod(NSString *className, NSString *selector, NSString *types) {
+    Method method = class_getInstanceMethod(objc_getClass(className.UTF8String), sel_registerName(selector.UTF8String));
+    const char *encoding = method ? method_getTypeEncoding(method) : NULL;
+    if (!encoding) return NO;
+    char stripped[256];
+    size_t length = 0;
+    for (const char *c = encoding; *c && length < sizeof(stripped) - 1; c++) {
+        if (*c < '0' || *c > '9') stripped[length++] = *c;
+    }
+    stripped[length] = 0;
+    return strcmp(stripped, types.UTF8String) == 0;
+}
+
+// Startup self-check: what each method needs from SpringBoard on this iOS version. A missing item
+// leaves that method out (or the tweak inactive) rather than risking a crash.
+static NSArray<NSString *> *CRMissing(NSArray<NSArray *> *requirements) {
+    NSMutableArray *missing = [NSMutableArray array];
+    for (NSArray *item in requirements) { // @[class, selector or @"" for the class itself, @(class method)]
+        Class cls = objc_getClass([item[0] UTF8String]);
+        NSString *selector = item[1];
+        BOOL classMethod = item.count > 2 && [item[2] boolValue];
+        BOOL ok = cls && (selector.length == 0 ||
+                          (classMethod ? [cls respondsToSelector:NSSelectorFromString(selector)]
+                                       : [cls instancesRespondToSelector:NSSelectorFromString(selector)]));
+        if (!ok) [missing addObject:selector.length ? [NSString stringWithFormat:@"%@%@ %@", classMethod ? @"+" : @"-", item[0], selector] : item[0]];
+    }
+    return missing;
+}
+
+// Crash-loop guard: SpringBoard starts counted until the tweak has run for 30 s. Two starts in a row
+// that never got there (SpringBoard keeps restarting) pause the tweak for this version, before the
+// jailbreak's safe mode would kick in. Settings > Diagnostics > Try Again deletes the file.
+// Plain C file calls: this runs in the constructor, while SpringBoard is still loading, where Foundation
+// file and property-list APIs deadlocked on iOS 15 (they wait for the loader that is running the tweak).
+#define CR_STABLE_AFTER 30.0
+static int gUnstableStarts;
+
+static void CRWriteGuard(int unstable, int tripped) {
+    mkdir("/var/mobile/Documents/ConfirmRotateReborn", 0755);
+    FILE *file = fopen(CR_GUARD_FILE, "w");
+    if (!file) return;
+    fprintf(file, "%s %d %d\n", CR_VERSION, unstable, tripped);
+    fclose(file);
+}
+
+static BOOL CRCrashGuardTripped(void) {
+    char version[64] = "";
+    int unstable = 0, tripped = 0;
+    FILE *file = fopen(CR_GUARD_FILE, "r");
+    if (file) {
+        if (fscanf(file, "%63s %d %d", version, &unstable, &tripped) != 3) version[0] = 0;
+        fclose(file);
+    }
+    if (strcmp(version, CR_VERSION) != 0) unstable = tripped = 0; // a new version gets a fresh start
+    gUnstableStarts = unstable;
+    if (tripped) return YES;
+    BOOL trip = unstable >= 2;
+    CRWriteGuard(trip ? unstable : unstable + 1, trip);
+    return trip;
+}
+
+static void CRMarkStable(void) {
+    CRWriteGuard(0, 0);
+}
+
+// Settings > Diagnostics > Try Again: respring (works even while the tweak is paused)
+static void CRRespringRequested(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef info) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        CRLogInfo(@"respring requested from settings");
+        id springBoard = [UIApplication sharedApplication];
+        if ([springBoard respondsToSelector:@selector(_relaunchSpringBoardNow)]) [springBoard performSelector:@selector(_relaunchSpringBoardNow)];
+        else exit(0);
+    });
+}
+
+// Rotation test hooks (log only)
+%group TraceDeviceOrientationChanged
+%hook SpringBoard
+- (void)_deviceOrientationChanged:(long long)orientation {
+    CRTrace(@"-[SpringBoard _deviceOrientationChanged:%lld]%@", orientation, gPassing ? @" (from the tweak)" : @"");
+    %orig;
+}
+%end
+%end
+
+%group TraceSetDeviceOrientation
+%hook SpringBoard
+- (void)_setDeviceOrientation:(long long)orientation animated:(BOOL)animated logMessage:(id)message {
+    CRTrace(@"-[SpringBoard _setDeviceOrientation:%lld animated:%d] %@", orientation, animated, message);
+    %orig;
+}
+%end
+%end
+
+%group TraceNoteInterfaceOrientation
+%hook SpringBoard
+- (void)noteInterfaceOrientationChanged:(long long)orientation duration:(double)duration updateMirroredDisplays:(BOOL)mirrored force:(BOOL)force logMessage:(id)message {
+    CRTrace(@"-[SpringBoard noteInterfaceOrientationChanged:%lld] %@", orientation, message);
+    %orig;
+}
+%end
+%end
+
+%group TraceEnqueue
+%hook SBDeviceOrientationUpdateManager
+- (void)_enqueueOrientationUpdateToDeviceOrientation:(long long)orientation {
+    CRTrace(@"-[SBDeviceOrientationUpdateManager _enqueueOrientationUpdateToDeviceOrientation:%lld]", orientation);
+    %orig;
+}
+%end
+%end
+
+%group TraceLegacyEnqueue
+%hook SBDeviceOrientationUpdateManager
+- (void)_legacy_enqueueOrientationUpdateToDeviceOrientation:(long long)orientation source:(id)source {
+    CRTrace(@"-[SBDeviceOrientationUpdateManager _legacy_enqueueOrientationUpdateToDeviceOrientation:%lld source:%@]", orientation, source);
+    %orig;
+}
+%end
+%end
+
+%group TraceLockValidator
+%hook SBTraitsInputsOrientationLockValidator
+- (void)setLockOrientation:(long long)orientation {
+    CRTrace(@"-[SBTraitsInputsOrientationLockValidator setLockOrientation:%lld]", orientation);
+    %orig;
+}
+%end
+%end
+
+%group TracePipelineAccelerometer
+%hook SBTraitsEmbeddedDisplayPipelineManager
+- (void)accelerometer:(id)accelerometer didChangeDeviceOrientation:(long long)orientation {
+    CRTrace(@"-[SBTraitsEmbeddedDisplayPipelineManager accelerometer:didChangeDeviceOrientation:%lld]", orientation);
+    %orig;
+}
+%end
+%end
+
+%group TraceLockManager
+%hook SBOrientationLockManager
+- (void)lock:(long long)orientation {
+    CRTrace(@"-[SBOrientationLockManager lock:%lld]", orientation);
+    %orig;
+}
+%end
+%end
+
+// Installs the rotation test hooks that fit this iOS version, and listens for Record Rotation Test
+static void CRInstallTraceHooks(void) {
+    NSMutableArray *installed = [NSMutableArray array];
+    if (CRHasMethod(@"SpringBoard", @"_deviceOrientationChanged:", @"v@:q")) { %init(TraceDeviceOrientationChanged); [installed addObject:@"_deviceOrientationChanged:"]; }
+    if (CRHasMethod(@"SpringBoard", @"_setDeviceOrientation:animated:logMessage:", @"v@:qB@")) { %init(TraceSetDeviceOrientation); [installed addObject:@"_setDeviceOrientation:"]; }
+    if (CRHasMethod(@"SpringBoard", @"noteInterfaceOrientationChanged:duration:updateMirroredDisplays:force:logMessage:", @"v@:qdBB@")) { %init(TraceNoteInterfaceOrientation); [installed addObject:@"noteInterfaceOrientationChanged:"]; }
+    if (CRHasMethod(@"SBDeviceOrientationUpdateManager", @"_enqueueOrientationUpdateToDeviceOrientation:", @"v@:q")) { %init(TraceEnqueue); [installed addObject:@"_enqueueOrientationUpdate"]; }
+    if (CRHasMethod(@"SBDeviceOrientationUpdateManager", @"_legacy_enqueueOrientationUpdateToDeviceOrientation:source:", @"v@:q@")) { %init(TraceLegacyEnqueue); [installed addObject:@"_legacy_enqueueOrientationUpdate"]; }
+    if (CRHasMethod(@"SBTraitsInputsOrientationLockValidator", @"setLockOrientation:", @"v@:q")) { %init(TraceLockValidator); [installed addObject:@"setLockOrientation:"]; }
+    if (CRHasMethod(@"SBTraitsEmbeddedDisplayPipelineManager", @"accelerometer:didChangeDeviceOrientation:", @"v@:@q")) { %init(TracePipelineAccelerometer); [installed addObject:@"accelerometer:didChangeDeviceOrientation:"]; }
+    if (CRHasMethod(@"SBOrientationLockManager", @"lock:", @"v@:q")) { %init(TraceLockManager); [installed addObject:@"lock:"]; }
+    CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, CRRotationTestRequested,
+                                    CFSTR(CR_ROTATION_TEST_NOTIFICATION), NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+    dispatch_async(dispatch_get_main_queue(), ^{ CRLogInfo(@"rotation test hooks available: %@", installed.count ? [installed componentsJoinedByString:@", "] : @"none"); });
+}
+
+%ctor {
+    // Only what is safe while SpringBoard is still loading: the crash guard (plain C file calls), the
+    // self-check (runtime lookups) and the hooks. Logging, the status file, settings and observers wait
+    // for the main queue, which runs once loading is done.
+    CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, CRRespringRequested,
+                                    CFSTR(CR_RESPRING_NOTIFICATION), NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+    void (^writeSurvey)(void) = ^{
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(10.0 * NSEC_PER_SEC)), dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{ CRWriteRuntimeSurvey(); });
+    };
+    void (^logLoaded)(void) = ^{
+        CRLoadPrefs();
+        CRLogInfo(@"---- ConfirmRotate Reborn %s loaded: %@ iOS %@ (%@), %@ jailbreak", CR_VERSION, CRSysctlString("hw.machine"),
+                  [UIDevice currentDevice].systemVersion, CRSysctlString("kern.osversion"), CRJailbreakType());
+    };
+
+    if (CRCrashGuardTripped()) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            logLoaded();
+            CRLogInfo(@"crash guard: SpringBoard restarted %d times in a row shortly after start; tweak paused", gUnstableStarts);
+            CRWriteStatus(@"paused", nil, nil);
+        });
+        return;
+    }
+
+    // Which method: iOS 17's traits pipeline, else the older path through -[SpringBoard _deviceOrientationChanged:]
+    NSArray *common = CRMissing(@[@[@"SBOrientationLockManager", @"sharedInstance", @YES], @[@"SBOrientationLockManager", @"isUserLocked"],
+                                  @[@"SpringBoard", @"activeInterfaceOrientation"]]);
+    NSMutableArray *modern = [CRMissing(@[@[@"SBTraitsEmbeddedDisplayPipelineManager", @"inputs"], @[@"TRAArbitrationInputs", @"deviceOrientationInputs"],
+                                          @[@"TRAArbitrationDeviceOrientationInputs", @"currentDeviceOrientation"]]) mutableCopy];
+    if (![objc_getClass("SBTraitsEmbeddedDisplayPipelineManager") instancesRespondToSelector:@selector(_noteInputsNeedUpdateAnimated:reason:)] &&
+        ![objc_getClass("TRAArbiter") instancesRespondToSelector:@selector(_setNeedsUpdateArbitrationWithReason:animated:)]) {
+        [modern addObject:@"a way to re-run the traits pipeline"];
+    }
+    NSArray *legacy = CRMissing(@[@[@"SpringBoard", @"_deviceOrientationChanged:"]]);
+    NSString *method = nil;
+    if (common.count == 0 && modern.count == 0) method = @"iOS 17";
+    else if (common.count == 0 && legacy.count == 0) method = @"iOS 15";
+    NSString *checks = [NSString stringWithFormat:@"self-check: common %@ | iOS 17 method %@ | iOS 15 method %@",
+                        common.count ? [common componentsJoinedByString:@", "] : @"ok",
+                        modern.count ? [@"missing " stringByAppendingString:[modern componentsJoinedByString:@", "]] : @"ok",
+                        legacy.count ? [@"missing " stringByAppendingString:[legacy componentsJoinedByString:@", "]] : @"ok"];
+
+    if (!method) {
+        NSMutableArray *missing = [common mutableCopy];
+        [missing addObjectsFromArray:modern];
+        [missing addObjectsFromArray:legacy];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            logLoaded();
+            CRLogInfo(@"%@", checks);
+            CRLogInfo(@"inactive: this iOS version is not supported");
+            CRWriteStatus(@"unsupported", nil, missing);
+            CRMarkStable();
+        });
+        CRInstallTraceHooks();
+        writeSurvey();
+        return;
+    }
+    gLegacy = [method isEqualToString:@"iOS 15"];
+
+    NSMutableArray *optionalMissing = [NSMutableArray array];
+    if ([objc_getClass("SBOrientationLockManager") instancesRespondToSelector:@selector(lock)] &&
+        [objc_getClass("SBOrientationLockManager") instancesRespondToSelector:@selector(unlock)]) %init(Common);
+    else [optionalMissing addObject:@"rotation lock hooks"];
+    if (gLegacy) {
+        %init(Legacy);
+        if ([objc_getClass("SBLayoutStateTransitionCoordinator") instancesRespondToSelector:@selector(beginTransitionForWorkspaceTransaction:)]) %init(LegacyTransitions);
+        else [optionalMissing addObject:@"app switch hook"];
+    } else {
+        %init(Modern);
+        if ([objc_getClass("SBTraitsEmbeddedDisplayPipelineManager") instancesRespondToSelector:@selector(layoutStateTransitionCoordinator:transitionDidBeginWithTransitionContext:)]) %init(ModernTransitions);
+        else [optionalMissing addObject:@"app switch hook"];
+    }
+
+    CRInstallTraceHooks();
+    writeSurvey();
+    dispatch_async(dispatch_get_main_queue(), ^{
+        logLoaded();
+        CRLogInfo(@"%@", checks);
+        if (optionalMissing.count) CRLogInfo(@"not available on this iOS: %@", [optionalMissing componentsJoinedByString:@", "]);
+        CRWriteStatus(@"active", method, optionalMissing);
+        CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, CRPrefsChangedCallback,
+                                        CFSTR(CR_PREFS_CHANGED), NULL, CFNotificationSuspensionBehaviorCoalesce);
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(6.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [[CRController shared] start];
+        });
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(CR_STABLE_AFTER * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{ CRMarkStable(); });
+    });
 }

@@ -399,6 +399,62 @@
 			<key>valueSuffix</key>
 			<string>%</string>
 		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>Share Log creates a report for bug reports: the log, settings, jailbreak, device and iOS version, and the latest SpringBoard crash report if there is one. Record Rotation Test adds what SpringBoard does while the phone is turned.</string>
+			<key>label</key>
+			<string>Diagnostics</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSTitleValueCell</string>
+			<key>get</key>
+			<string>statusText:</string>
+			<key>label</key>
+			<string>Status</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.goldenappleguy.confirmrotatereborn/changed</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.goldenappleguy.confirmrotatereborn</string>
+			<key>key</key>
+			<string>DetailedLogging</string>
+			<key>label</key>
+			<string>Detailed Logging</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>recordRotationTest:</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Record Rotation Test</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>shareLog:</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Share Log</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>tryAgain:</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>id</key>
+			<string>TryAgain</string>
+			<key>label</key>
+			<string>Try Again</string>
+		</dict>
 	</array>
 	<key>title</key>
 	<string>ConfirmRotate Reborn</string>
