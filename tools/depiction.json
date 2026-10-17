@@ -46,6 +46,15 @@
       "views": [
         {
           "class": "DepictionSubheaderView",
+          "title": "1.0.5",
+          "useBoldText": true
+        },
+        {
+          "class": "DepictionMarkdownView",
+          "markdown": "- After switching apps, the button appears again when the app's orientation differs from how the phone is held (for example, back to a video that Portrait on App Switch turned to portrait).\n- Apps that are just opening no longer get a button for an orientation they don't support."
+        },
+        {
+          "class": "DepictionSubheaderView",
           "title": "1.0.4",
           "useBoldText": true
         },

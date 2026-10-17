@@ -146,6 +146,7 @@
 + (instancetype)shared;
 - (void)start;
 - (void)deviceOrientationChanged;
+- (void)evaluate;
 - (void)prefsChanged;
 @end
 
@@ -257,6 +258,7 @@ static UIInterfaceOrientation gTarget;
 static BOOL gShown;
 static BOOL gStarted;
 static NSUInteger gToken;      // pending "phone settled" check
+static BOOL gAppSwitchSettling; // first check after an app switch (see CRFrontAppSupports)
 static NSUInteger gHideToken;  // pending auto-hide
 static NSUInteger gAutoToken;  // pending auto-rotate
 static BOOL gHolding;
@@ -281,6 +283,7 @@ static NSString *gIconColor = @"Default";
 // bottom edge; returning to portrait, it stays at the same physical spot.
 static CGFloat gDistanceFromStatusBar = 0.25;
 #define CR_EDGE_INSET 0.10
+#define CR_APP_SWITCH_SETTLE 0.6 // seconds for an opened app to reach the screen before the button is offered
 static NSTimeInterval gShowAfter = 0.3;  // the phone has to stay turned this long before the button shows
 static NSTimeInterval gHideAfter = 5.0;
 static NSInteger gTheme;                  // button look: 0 follows light / dark mode, 1 light, 2 dark
@@ -539,6 +542,13 @@ static BOOL CRFrontAppSupports(UIInterfaceOrientation orientation) {
     if (handles.count == 0) {
         return orientation == UIInterfaceOrientationPortrait || [UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPad;
     }
+    // Only the front app: during a switch the previous app's scene can still be listed
+    NSMutableSet *front = [NSMutableSet set];
+    for (SBSceneHandle *handle in handles) {
+        SBApplication *app = [handle respondsToSelector:@selector(application)] ? [handle application] : nil;
+        if (gFrontBundle.length && [app respondsToSelector:@selector(bundleIdentifier)] && [[app bundleIdentifier] isEqualToString:gFrontBundle]) [front addObject:handle];
+    }
+    if (front.count) handles = front;
     for (SBSceneHandle *handle in handles) {
         SBApplication *app = [handle respondsToSelector:@selector(application)] ? [handle application] : nil;
         if ([app respondsToSelector:@selector(bundleIdentifier)] && [gAlwaysShowApps containsObject:[app bundleIdentifier]]) return YES;
@@ -547,6 +557,12 @@ static BOOL CRFrontAppSupports(UIInterfaceOrientation orientation) {
         UIInterfaceOrientationMask mask = 0;
         if (!CRMask(clientSettings, @selector(supportedInterfaceOrientations), &mask) || mask == 0) {
             if (!CRMask(handle, @selector(supportedInterfaceOrientations), &mask) || mask == 0) return YES;
+        }
+        // Just opened: an iPhone app reporting every orientation, upside down included, most likely hasn't
+        // set its own yet (it narrows them a moment later); wait for the second check
+        if (gAppSwitchSettling && mask == UIInterfaceOrientationMaskAll && [UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPhone) {
+            CRLog(@"%@ has not reported its orientations yet", [app bundleIdentifier]);
+            return NO;
         }
         if (mask & (1 << orientation)) return YES;
     }
@@ -1053,6 +1069,21 @@ static void CRLayoutTransitionBegan(SBLayoutStateTransitionContext *context) {
         gHeld = CRActiveOrientation();
         gHolding = YES;
         CRRequestArbitration();
+    }
+    // The new app may show a different orientation from the phone's (back to a video held in portrait
+    // while the phone is still sideways): once it is on screen, offer the button as for a turn
+    if (active && !gExcluded) {
+        NSUInteger token = ++gToken;
+        // Checked twice: an app opening from scratch can report every orientation at first and narrow them
+        // a moment later; the second check hides the button if the app doesn't support it after all
+        for (NSTimeInterval extra = 0; extra <= 1.0; extra += 1.0) {
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)((CR_APP_SWITCH_SETTLE + gShowAfter + extra) * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                if (token != gToken) return;
+                gAppSwitchSettling = extra == 0;
+                [[CRController shared] evaluate];
+                gAppSwitchSettling = NO;
+            });
+        }
     }
 }
 
