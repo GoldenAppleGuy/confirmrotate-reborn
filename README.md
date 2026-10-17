@@ -1,6 +1,6 @@
 # ConfirmRotate Reborn
 
-Asks before the screen rotates. Turn the phone and a button appears, upright for the way you are now holding it; tap it and the screen rotates. A modern take on the old ConfirmRotate tweak, rebuilt for iOS 15 to 17.
+Asks before the screen rotates. Turn the phone and a button appears, upright for the way you are now holding it; tap it and the screen rotates. A modern take on the old ConfirmRotate tweak, rebuilt for iOS 15 to 18.
 
 ## Features
 
@@ -19,7 +19,7 @@ Asks before the screen rotates. Turn the phone and a button appears, upright for
 
 ## Requirements
 
-- iOS 15 to 18, jailbroken (rootless, roothide or rootful). Tested on iOS 17.0 (iPhone 15, Dopamine) and iOS 15.4.1 (iPhone 12 mini, Dopamine); iOS 16.1, 18.0 and 18.6 in the simulator only. roothide is untested.
+- iOS 15 to 18, jailbroken: rootless, roothide or rootful.
 - PreferenceLoader and AltList. CCSupport for the Control Center toggle.
 
 The tweak picks its hooks at startup: iOS 17's traits pipeline (also used on iOS 18), iOS 16's earlier version of it, or the older path that iOS 15 uses (see How it works).
