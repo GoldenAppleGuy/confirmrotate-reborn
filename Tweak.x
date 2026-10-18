@@ -259,6 +259,7 @@ static BOOL gShown;
 static BOOL gStarted;
 static NSUInteger gToken;      // pending "phone settled" check
 static BOOL gAppSwitchSettling; // first check after an app switch (see CRFrontAppSupports)
+static BOOL gSawAppSwitch;      // gFrontBundle has come from an app switch (not only the guess at start)
 static NSUInteger gHideToken;  // pending auto-hide
 static NSUInteger gAutoToken;  // pending auto-rotate
 static BOOL gHolding;
@@ -539,7 +540,9 @@ static BOOL CRFrontAppSupports(UIInterfaceOrientation orientation) {
     SBSceneManager *manager = [coordinator respondsToSelector:@selector(mainDisplaySceneManager)] ? [coordinator mainDisplaySceneManager] : nil;
     if (![manager respondsToSelector:@selector(externalForegroundApplicationSceneHandles)]) return YES; // unknown: don't hide the button
     NSSet *handles = [manager externalForegroundApplicationSceneHandles];
-    if (handles.count == 0) {
+    // Home or lock screen (no app, or the last app switch went there: a video in Picture in Picture keeps
+    // its app listed as foreground): portrait only on iPhone
+    if (handles.count == 0 || (gFrontBundle.length == 0 && gSawAppSwitch)) {
         return orientation == UIInterfaceOrientationPortrait || [UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPad;
     }
     // Only the front app: during a switch the previous app's scene can still be listed
@@ -1054,6 +1057,7 @@ static void CRLayoutTransitionBegan(SBLayoutStateTransitionContext *context) {
     NSString *from = CRPrimaryScene([context fromLayoutState]), *to = CRPrimaryScene([context toLayoutState]);
     if ([from isEqualToString:to]) return;
     BOOL exclusionChanged = CRSetFrontBundle(CRBundleForScene(to));
+    gSawAppSwitch = YES;
     BOOL active = gStarted && CREnabled() && !CRUserLocked();
     if (gExcluded) {
         CRLog(@"app switch to %@: excluded", gFrontBundle);

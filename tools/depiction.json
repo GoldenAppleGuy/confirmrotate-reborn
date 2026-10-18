@@ -9,7 +9,7 @@
       "views": [
         {
           "class": "DepictionMarkdownView",
-          "markdown": "Asks before the screen rotates. Turn the phone and a button appears, upright for the way you are now holding it; tap it and the screen rotates.\n\n- **Only when it can rotate**: no button for apps that don't support the new orientation, or on the home and lock screens.\n- **Auto-rotate** (optional): the screen rotates by itself after a delay while a ring fills around the button; with Tap to Cancel, a tap keeps the screen as it is.\n- **Gestures**: long press the button to rotate and blacklist the app; swipe it away to dismiss it.\n- **Portrait on app switch** (optional): apps open in portrait.\n- **Whitelist, blacklist and Always Show In** app lists.\n- **Appearance**: circle or rounded square, icon color, size, opacity, position and hide delay.\n- **Control Center toggle** (needs CCSupport).\n- Translated into 13 languages.\n\nThe system rotation lock still wins: while it is on, nothing changes."
+          "markdown": "Asks before the screen rotates. Turn the phone and a button appears, upright for the way you are now holding it; tap it and the screen rotates.\n\n- **Only when it can rotate**: no button for apps that don't support the new orientation, or on the home and lock screens.\n- **Auto-rotate** (optional): the screen rotates by itself after a delay while a ring fills around the button; with Tap to Cancel, a tap keeps the screen as it is.\n- **Gestures**: long press the button to rotate and blacklist the app; swipe it away to dismiss it.\n- **Portrait on app switch** (optional): apps open in portrait. After any app switch, the button is offered again if the phone is held differently.\n- **Whitelist, blacklist and Always Show In** app lists.\n- **Timing**: how long the phone has to stay turned before the button appears, and how long it stays.\n- **Appearance**: circle or rounded square, light, dark or automatic, icon color, size, opacity and position.\n- **Control Center toggle** (needs CCSupport).\n- **Diagnostics**: Share Log creates a report for bug reports.\n- Translated into 13 languages.\n\nThe system rotation lock still wins: while it is on, nothing changes."
         },
         {
           "class": "DepictionSeparatorView"
@@ -44,6 +44,15 @@
       "tabname": "Changelog",
       "class": "DepictionStackView",
       "views": [
+        {
+          "class": "DepictionSubheaderView",
+          "title": "1.0.6",
+          "useBoldText": true
+        },
+        {
+          "class": "DepictionMarkdownView",
+          "markdown": "- Fixed: the button could flash on the home screen when a video went into Picture in Picture.\n- The package icon now shows in the list of installed packages."
+        },
         {
           "class": "DepictionSubheaderView",
           "title": "1.0.5",
