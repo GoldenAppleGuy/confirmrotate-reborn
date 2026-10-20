@@ -18,6 +18,8 @@
 	<string>자동 회전은 버튼 주위의 링이 채워지면 회전하며, ‘숨기기까지’ 대신 사용됩니다. ‘탭하여 취소’를 켜면 탭할 때 화면이 그대로 유지됩니다. 버튼을 길게 누르면 회전하고 앱을 블랙리스트에 추가하며, 쓸어 넘기면 닫힙니다.</string>
 	<key>Automatic</key>
 	<string>자동</string>
+	<key>Background</key>
+	<string>배경</string>
 	<key>Behavior</key>
 	<string>동작</string>
 	<key>Blacklisted Apps</key>
@@ -28,6 +30,10 @@
 	<string>취소</string>
 	<key>Circle</key>
 	<string>원형</string>
+	<key>Custom</key>
+	<string>사용자 지정</string>
+	<key>Custom…</key>
+	<string>사용자 지정…</string>
 	<key>Dark</key>
 	<string>다크</string>
 	<key>Default</key>
@@ -100,6 +106,8 @@
 	<string>크기</string>
 	<key>Status</key>
 	<string>상태</string>
+	<key>System Blur</key>
+	<string>시스템 흐림</string>
 	<key>Tap to Cancel</key>
 	<string>탭하여 취소</string>
 	<key>Teal</key>

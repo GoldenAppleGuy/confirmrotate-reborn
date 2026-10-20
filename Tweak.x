@@ -24,6 +24,7 @@
 #import <sys/sysctl.h>
 #import <objc/message.h>
 #import <sys/stat.h>
+#import "CRButtonLook.h"
 
 #define CR_PREFS_DOMAIN CFSTR("com.goldenappleguy.confirmrotatereborn")
 #define CR_PREFS_CHANGED "com.goldenappleguy.confirmrotatereborn/changed"
@@ -258,7 +259,8 @@ static UIInterfaceOrientation gTarget;
 static BOOL gShown;
 static BOOL gStarted;
 static NSUInteger gToken;      // pending "phone settled" check
-static BOOL gAppSwitchSettling; // first check after an app switch (see CRFrontAppSupports)
+static BOOL gAppSwitchSettling; // checking right after an app switch (see CRFrontAppSupports)
+static BOOL gAppUnsettled;      // that check found the app hadn't reported its orientations yet
 static BOOL gSawAppSwitch;      // gFrontBundle has come from an app switch (not only the guess at start)
 static NSUInteger gHideToken;  // pending auto-hide
 static NSUInteger gAutoToken;  // pending auto-rotate
@@ -278,7 +280,10 @@ static BOOL gEnabled = YES;
 static CGFloat gButtonSize = 56.0;
 static BOOL gRoundedSquare;            // button shape: circle or rounded square
 static CGFloat gButtonOpacity = 1.0;
-static NSString *gIconColor = @"Default";
+static NSString *gIconColor = @"Default";  // "Default", a preset name or "Custom" (see CRButtonLook.h)
+static NSString *gIconCustomColor;         // "#RRGGBB"
+static NSString *gBackground = @"Blur";   // "Blur" or "Custom"
+static NSString *gBackgroundColor;         // "#RRGGBBAA"
 // Button position: on a long side of the screen, 10% in from the edge, at this fraction of the side's
 // length from the top of the phone (where the status bar is in portrait). In landscape it sits on the
 // bottom edge; returning to portrait, it stays at the same physical spot.
@@ -354,6 +359,9 @@ static void CRLoadPrefs(void) {
     gRoundedSquare = CRPrefNumber(CFSTR("ButtonShape"), 0, 0, 1) == 1;
     gButtonOpacity = round(CRPrefNumber(CFSTR("ButtonOpacity"), 100, 20, 100)) / 100.0;
     gIconColor = CRPrefString(CFSTR("IconColor"), @"Default");
+    gIconCustomColor = CRPrefString(CFSTR("IconCustomColor"), @"");
+    gBackground = CRPrefString(CFSTR("Background"), @"Blur");
+    gBackgroundColor = CRPrefString(CFSTR("BackgroundColor"), @"");
     gDistanceFromStatusBar = round(CRPrefNumber(CFSTR("DistanceFromStatusBar"), 25, 5, 95)) / 100.0;
     gHideAfter = round(CRPrefNumber(CFSTR("HideAfter"), 5, 1, 15));
     gShowAfter = round(CRPrefNumber(CFSTR("ShowAfter"), 0.3, 0, 3) * 10) / 10;
@@ -392,12 +400,7 @@ static void CRHaptic(UIImpactFeedbackStyle style) {
 }
 
 static UIColor *CRAccentColor(void) {
-    NSDictionary<NSString *, UIColor *> *colors = @{
-        @"Blue": [UIColor systemBlueColor], @"Green": [UIColor systemGreenColor], @"Orange": [UIColor systemOrangeColor],
-        @"Pink": [UIColor systemPinkColor], @"Purple": [UIColor systemPurpleColor], @"Red": [UIColor systemRedColor],
-        @"Teal": [UIColor systemTealColor], @"Yellow": [UIColor systemYellowColor],
-    };
-    return colors[gIconColor] ?: [UIColor labelColor]; // Default: follows light / dark mode
+    return CRIconColorFor(gIconColor, gIconCustomColor);
 }
 
 // The Theme setting as a style for the button (unspecified: follow the system)
@@ -565,6 +568,7 @@ static BOOL CRFrontAppSupports(UIInterfaceOrientation orientation) {
         // set its own yet (it narrows them a moment later); wait for the second check
         if (gAppSwitchSettling && mask == UIInterfaceOrientationMaskAll && [UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPhone) {
             CRLog(@"%@ has not reported its orientations yet", [app bundleIdentifier]);
+            gAppUnsettled = YES;
             return NO;
         }
         if (mask & (1 << orientation)) return YES;
@@ -749,7 +753,7 @@ static void CRConfirmAndBlacklist(void) {
                     if (gButton == button) gButton = nil;
                 }];
             } else {
-                [UIView animateWithDuration:0.25 delay:0 usingSpringWithDamping:0.7 initialSpringVelocity:0 options:0 animations:^{
+                [UIView animateWithDuration:0.25 delay:0 usingSpringWithDamping:0.7 initialSpringVelocity:0 options:UIViewAnimationOptionAllowUserInteraction animations:^{
                     button.center = self->_startCenter;
                 } completion:nil];
                 CRScheduleHide(gHideAfter);
@@ -765,45 +769,10 @@ static CRButtonGestures *gGestures;
 
 static UIView *CRMakeButton(void) {
     UIView *button = [[UIView alloc] initWithFrame:CGRectMake(0, 0, gButtonSize, gButtonSize)];
-    CGFloat cornerRadius = gRoundedSquare ? gButtonSize * 0.25 : gButtonSize / 2;
-    button.layer.cornerRadius = cornerRadius;
-    button.layer.cornerCurve = kCACornerCurveContinuous;
-    button.layer.masksToBounds = YES;
-    button.overrideUserInterfaceStyle = CRThemeStyle(); // material and colors below follow it
-    UIColor *accent = CRAccentColor();
-
-    // System material: follows light / dark mode
-    UIVisualEffectView *blur = [[UIVisualEffectView alloc] initWithEffect:[UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemThickMaterial]];
-    blur.frame = button.bounds;
-    blur.userInteractionEnabled = NO;
-    [button addSubview:blur];
-
-    // Control Center's rotation lock symbol over a "Rotate?" caption ("Cancel?" with auto-rotate on),
-    // both scaled with the button
-    UIImageSymbolConfiguration *config = [UIImageSymbolConfiguration configurationWithPointSize:round(gButtonSize * 0.34) weight:UIImageSymbolWeightSemibold];
-    UIImageView *icon = [[UIImageView alloc] initWithImage:[UIImage systemImageNamed:@"lock.rotation" withConfiguration:config]];
-    icon.tintColor = accent;
-    [icon sizeToFit];
-
-    UILabel *caption = [UILabel new];
+    button.overrideUserInterfaceStyle = CRThemeStyle(); // material and colors follow it
     BOOL cancels = gAutoRotateAfter > 0 && gTapToCancel;
-    caption.text = CRLocalized(cancels ? @"Cancel?" : @"Rotate?");
-    caption.font = [UIFont systemFontOfSize:MAX(9.0, round(gButtonSize * 0.16)) weight:UIFontWeightSemibold];
-    caption.textColor = accent;
-    caption.adjustsFontSizeToFitWidth = YES;
-    caption.minimumScaleFactor = 0.7;
-    caption.textAlignment = NSTextAlignmentCenter;
-    [caption sizeToFit];
-    CGFloat captionWidth = MIN(caption.bounds.size.width, gButtonSize * (gRoundedSquare ? 0.86 : 0.74));
-    CGFloat spacing = round(gButtonSize * 0.03);
-    CGFloat contentHeight = icon.bounds.size.height + spacing + caption.bounds.size.height;
-    CGFloat top = (gButtonSize - contentHeight) / 2;
-    icon.center = CGPointMake(gButtonSize / 2, top + icon.bounds.size.height / 2);
-    caption.frame = CGRectMake((gButtonSize - captionWidth) / 2, top + icon.bounds.size.height + spacing, captionWidth, caption.bounds.size.height);
-    icon.userInteractionEnabled = NO;
-    caption.userInteractionEnabled = NO;
-    [button addSubview:icon];
-    [button addSubview:caption];
+    CRBuildButtonLook(button, gButtonSize, gRoundedSquare, CRAccentColor(), CRBackgroundColorFor(gBackground, gBackgroundColor),
+                      CRLocalized(cancels ? @"Cancel?" : @"Rotate?"));
 
     if (!gGestures) gGestures = [CRButtonGestures new];
     UILongPressGestureRecognizer *longPress = [[UILongPressGestureRecognizer alloc] initWithTarget:gGestures action:@selector(longPressed:)];
@@ -914,7 +883,8 @@ static void CRShow(UIDeviceOrientation device, UIInterfaceOrientation target) {
     gButton = button;
     gTarget = target;
     gShown = YES;
-    [UIView animateWithDuration:0.12 delay:0 usingSpringWithDamping:0.85 initialSpringVelocity:0 options:0 animations:^{
+    // Tappable from its first frame: UIKit otherwise ignores touches on a view while it animates
+    [UIView animateWithDuration:0.12 delay:0 usingSpringWithDamping:0.85 initialSpringVelocity:0 options:UIViewAnimationOptionAllowUserInteraction animations:^{
         button.alpha = gButtonOpacity;
         button.transform = upright;
     } completion:nil];
@@ -926,8 +896,9 @@ static void CRShow(UIDeviceOrientation device, UIInterfaceOrientation target) {
 }
 
 static void CRLogPrefs(void) {
-    CRLogInfo(@"settings: enabled=%d appSwitch=%d size=%.0f opacity=%.2f color=%@ theme=%ld show=%.1f hide=%.0f auto=%.0f cancel=%d haptics=%d always=%@ white=%@ black=%@ (front %@, excluded %d)",
-          gEnabled, gPortraitOnAppSwitch, gButtonSize, gButtonOpacity, gIconColor, (long)gTheme, gShowAfter, gHideAfter, gAutoRotateAfter, gTapToCancel, gHaptics,
+    CRLogInfo(@"settings: enabled=%d appSwitch=%d size=%.0f opacity=%.2f color=%@ background=%@ theme=%ld show=%.1f hide=%.0f auto=%.0f cancel=%d haptics=%d always=%@ white=%@ black=%@ (front %@, excluded %d)",
+          gEnabled, gPortraitOnAppSwitch, gButtonSize, gButtonOpacity, [gIconColor isEqualToString:@"Custom"] ? gIconCustomColor : gIconColor,
+          [gBackground isEqualToString:@"Custom"] ? gBackgroundColor : gBackground, (long)gTheme, gShowAfter, gHideAfter, gAutoRotateAfter, gTapToCancel, gHaptics,
           [gAlwaysShowApps.allObjects componentsJoinedByString:@","], [gWhitelistApps.allObjects componentsJoinedByString:@","],
           [gBlacklistApps.allObjects componentsJoinedByString:@","], gFrontBundle, gExcluded);
 }
@@ -1052,6 +1023,22 @@ static NSString *CRPrimaryScene(SBLayoutState *state) {
 // - an app the whitelist / blacklist excludes: stop holding, so it follows the phone
 // - Portrait on App Switch: hold portrait
 // - back from an excluded app: hold whatever orientation it was left in
+// After an app switch, once the app is on screen: offer the button as for a turn. An app opening from
+// scratch can report every orientation at first and narrow them later, so while it hasn't reported its
+// own, check again every half second (for up to 3 s) rather than offer an orientation it may not support.
+#define CR_SWITCH_RECHECKS 6
+static void CRCheckAfterSwitch(NSUInteger token, int attempt) {
+    NSTimeInterval delay = attempt == 0 ? CR_APP_SWITCH_SETTLE + gShowAfter : 0.5;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        if (token != gToken) return;
+        gAppSwitchSettling = attempt < CR_SWITCH_RECHECKS;
+        gAppUnsettled = NO;
+        [[CRController shared] evaluate];
+        gAppSwitchSettling = NO;
+        if (gAppUnsettled && attempt < CR_SWITCH_RECHECKS) CRCheckAfterSwitch(token, attempt + 1);
+    });
+}
+
 static void CRLayoutTransitionBegan(SBLayoutStateTransitionContext *context) {
     if (![context respondsToSelector:@selector(fromLayoutState)] || ![context respondsToSelector:@selector(toLayoutState)]) return;
     NSString *from = CRPrimaryScene([context fromLayoutState]), *to = CRPrimaryScene([context toLayoutState]);
@@ -1077,17 +1064,7 @@ static void CRLayoutTransitionBegan(SBLayoutStateTransitionContext *context) {
     // The new app may show a different orientation from the phone's (back to a video held in portrait
     // while the phone is still sideways): once it is on screen, offer the button as for a turn
     if (active && !gExcluded) {
-        NSUInteger token = ++gToken;
-        // Checked twice: an app opening from scratch can report every orientation at first and narrow them
-        // a moment later; the second check hides the button if the app doesn't support it after all
-        for (NSTimeInterval extra = 0; extra <= 1.0; extra += 1.0) {
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)((CR_APP_SWITCH_SETTLE + gShowAfter + extra) * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-                if (token != gToken) return;
-                gAppSwitchSettling = extra == 0;
-                [[CRController shared] evaluate];
-                gAppSwitchSettling = NO;
-            });
-        }
+        CRCheckAfterSwitch(++gToken, 0);
     }
 }
 

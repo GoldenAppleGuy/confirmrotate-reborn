@@ -18,6 +18,8 @@
 	<string>自動旋轉會在按鈕周圍的圓環填滿後旋轉，取代「隱藏時間」。開啟「點一下取消」後，點一下按鈕會保持螢幕不變。按住按鈕可旋轉並將 App 加入黑名單；滑動可將其關閉。</string>
 	<key>Automatic</key>
 	<string>自動</string>
+	<key>Background</key>
+	<string>背景</string>
 	<key>Behavior</key>
 	<string>行為</string>
 	<key>Blacklisted Apps</key>
@@ -28,6 +30,10 @@
 	<string>取消</string>
 	<key>Circle</key>
 	<string>圓形</string>
+	<key>Custom</key>
+	<string>自訂</string>
+	<key>Custom…</key>
+	<string>自訂…</string>
 	<key>Dark</key>
 	<string>深色</string>
 	<key>Default</key>
@@ -100,6 +106,8 @@
 	<string>大小</string>
 	<key>Status</key>
 	<string>狀態</string>
+	<key>System Blur</key>
+	<string>系統模糊</string>
 	<key>Tap to Cancel</key>
 	<string>點一下取消</string>
 	<key>Teal</key>

@@ -18,6 +18,8 @@
 	<string>Otomatik Döndür, düğmenin çevresindeki halka dolunca ekranı döndürür ve “Gizleme Süresi”nin yerini alır. “Dokunarak İptal” açıkken dokunmak ekranı olduğu gibi bırakır. Döndürüp uygulamayı kara listeye eklemek için düğmeye uzun basın; kapatmak için kaydırın.</string>
 	<key>Automatic</key>
 	<string>Otomatik</string>
+	<key>Background</key>
+	<string>Arka Plan</string>
 	<key>Behavior</key>
 	<string>Davranış</string>
 	<key>Blacklisted Apps</key>
@@ -28,6 +30,10 @@
 	<string>Vazgeç</string>
 	<key>Circle</key>
 	<string>Daire</string>
+	<key>Custom</key>
+	<string>Özel</string>
+	<key>Custom…</key>
+	<string>Özel…</string>
 	<key>Dark</key>
 	<string>Koyu</string>
 	<key>Default</key>
@@ -100,6 +106,8 @@
 	<string>Boyut</string>
 	<key>Status</key>
 	<string>Durum</string>
+	<key>System Blur</key>
+	<string>Sistem Bulanıklığı</string>
 	<key>Tap to Cancel</key>
 	<string>Dokunarak İptal</string>
 	<key>Teal</key>

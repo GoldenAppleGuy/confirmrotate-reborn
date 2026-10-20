@@ -9,7 +9,7 @@
       "views": [
         {
           "class": "DepictionMarkdownView",
-          "markdown": "Asks before the screen rotates. Turn the phone and a button appears, upright for the way you are now holding it; tap it and the screen rotates.\n\n- **Only when it can rotate**: no button for apps that don't support the new orientation, or on the home and lock screens.\n- **Auto-rotate** (optional): the screen rotates by itself after a delay while a ring fills around the button; with Tap to Cancel, a tap keeps the screen as it is.\n- **Gestures**: long press the button to rotate and blacklist the app; swipe it away to dismiss it.\n- **Portrait on app switch** (optional): apps open in portrait. After any app switch, the button is offered again if the phone is held differently.\n- **Whitelist, blacklist and Always Show In** app lists.\n- **Timing**: how long the phone has to stay turned before the button appears, and how long it stays.\n- **Appearance**: circle or rounded square, light, dark or automatic, icon color, size, opacity and position.\n- **Control Center toggle** (needs CCSupport).\n- **Diagnostics**: Share Log creates a report for bug reports.\n- Translated into 13 languages.\n\nThe system rotation lock still wins: while it is on, nothing changes."
+          "markdown": "Asks before the screen rotates. Turn the phone and a button appears, upright for the way you are now holding it; tap it and the screen rotates.\n\n- **Only when it can rotate**: no button for apps that don't support the new orientation, or on the home and lock screens.\n- **Auto-rotate** (optional): the screen rotates by itself after a delay while a ring fills around the button; with Tap to Cancel, a tap keeps the screen as it is.\n- **Gestures**: long press the button to rotate and blacklist the app; swipe it away to dismiss it.\n- **Portrait on app switch** (optional): apps open in portrait. After any app switch, the button is offered again if the phone is held differently.\n- **Whitelist, blacklist and Always Show In** app lists.\n- **Timing**: how long the phone has to stay turned before the button appears, and how long it stays.\n- **Appearance**: circle or rounded square, light, dark or automatic, any icon and background color, size, opacity and position, with a live preview.\n- **Control Center toggle** (needs CCSupport).\n- **Diagnostics**: Share Log creates a report for bug reports.\n- Translated into 13 languages.\n\nThe system rotation lock still wins: while it is on, nothing changes."
         },
         {
           "class": "DepictionSeparatorView"
@@ -44,6 +44,15 @@
       "tabname": "Changelog",
       "class": "DepictionStackView",
       "views": [
+        {
+          "class": "DepictionSubheaderView",
+          "title": "1.1.0",
+          "useBoldText": true
+        },
+        {
+          "class": "DepictionMarkdownView",
+          "markdown": "- Custom icon color: pick any color, besides the presets.\n- Background color: the system blur, or any color with adjustable transparency.\n- Live preview of the button at the top of Appearance.\n- The button can be tapped as soon as it appears.\n- After switching apps, apps that are slow to report their orientations no longer get a button they can't use."
+        },
         {
           "class": "DepictionSubheaderView",
           "title": "1.0.6",

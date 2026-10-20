@@ -18,6 +18,8 @@
 	<string>Auto-Rotate rotates after a delay while a ring fills around the button, in place of Hide After; with Tap to Cancel, a tap keeps the screen as it is. Long press the button to rotate and blacklist the app; swipe it to dismiss.</string>
 	<key>Automatic</key>
 	<string>Automatic</string>
+	<key>Background</key>
+	<string>Background</string>
 	<key>Behavior</key>
 	<string>Behavior</string>
 	<key>Blacklisted Apps</key>
@@ -28,6 +30,10 @@
 	<string>Cancel</string>
 	<key>Circle</key>
 	<string>Circle</string>
+	<key>Custom</key>
+	<string>Custom</string>
+	<key>Custom…</key>
+	<string>Custom…</string>
 	<key>Dark</key>
 	<string>Dark</string>
 	<key>Default</key>
@@ -100,6 +106,8 @@
 	<string>Size</string>
 	<key>Status</key>
 	<string>Status</string>
+	<key>System Blur</key>
+	<string>System Blur</string>
 	<key>Tap to Cancel</key>
 	<string>Tap to Cancel</string>
 	<key>Teal</key>

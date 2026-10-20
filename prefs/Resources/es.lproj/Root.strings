@@ -18,6 +18,8 @@
 	<string>«Girar automáticamente» gira tras un retraso mientras un anillo se llena alrededor del botón, en lugar de «Ocultar tras». Con «Tocar para cancelar», un toque deja la pantalla como está. Mantén pulsado el botón para girar y añadir la app a la lista negra; deslízalo para descartarlo.</string>
 	<key>Automatic</key>
 	<string>Automático</string>
+	<key>Background</key>
+	<string>Fondo</string>
 	<key>Behavior</key>
 	<string>Comportamiento</string>
 	<key>Blacklisted Apps</key>
@@ -28,6 +30,10 @@
 	<string>Cancelar</string>
 	<key>Circle</key>
 	<string>Círculo</string>
+	<key>Custom</key>
+	<string>Personalizado</string>
+	<key>Custom…</key>
+	<string>Personalizado…</string>
 	<key>Dark</key>
 	<string>Oscuro</string>
 	<key>Default</key>
@@ -100,6 +106,8 @@
 	<string>Tamaño</string>
 	<key>Status</key>
 	<string>Estado</string>
+	<key>System Blur</key>
+	<string>Desenfoque del sistema</string>
 	<key>Tap to Cancel</key>
 	<string>Tocar para cancelar</string>
 	<key>Teal</key>

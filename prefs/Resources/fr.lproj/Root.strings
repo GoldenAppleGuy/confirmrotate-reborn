@@ -18,6 +18,8 @@
 	<string>La rotation automatique fait pivoter l’écran après un délai, pendant qu’un anneau se remplit autour du bouton, à la place de « Masquer après ». Avec « Toucher pour annuler », un toucher laisse l’écran tel quel. Maintenez le bouton pour pivoter et mettre l’app en liste noire ; balayez-le pour le masquer.</string>
 	<key>Automatic</key>
 	<string>Automatique</string>
+	<key>Background</key>
+	<string>Arrière-plan</string>
 	<key>Behavior</key>
 	<string>Comportement</string>
 	<key>Blacklisted Apps</key>
@@ -28,6 +30,10 @@
 	<string>Annuler</string>
 	<key>Circle</key>
 	<string>Cercle</string>
+	<key>Custom</key>
+	<string>Personnalisé</string>
+	<key>Custom…</key>
+	<string>Personnalisé…</string>
 	<key>Dark</key>
 	<string>Sombre</string>
 	<key>Default</key>
@@ -100,6 +106,8 @@
 	<string>Taille</string>
 	<key>Status</key>
 	<string>État</string>
+	<key>System Blur</key>
+	<string>Flou système</string>
 	<key>Tap to Cancel</key>
 	<string>Toucher pour annuler</string>
 	<key>Teal</key>

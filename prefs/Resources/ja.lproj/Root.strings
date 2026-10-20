@@ -18,6 +18,8 @@
 	<string>自動回転は、ボタンの周りのリングが満ちると回転します（「非表示まで」の代わり）。「タップでキャンセル」がオンの場合、タップすると画面はそのままです。ボタンを長押しすると回転してAppをブラックリストに追加し、スワイプすると閉じます。</string>
 	<key>Automatic</key>
 	<string>自動</string>
+	<key>Background</key>
+	<string>背景</string>
 	<key>Behavior</key>
 	<string>動作</string>
 	<key>Blacklisted Apps</key>
@@ -28,6 +30,10 @@
 	<string>キャンセル</string>
 	<key>Circle</key>
 	<string>円</string>
+	<key>Custom</key>
+	<string>カスタム</string>
+	<key>Custom…</key>
+	<string>カスタム…</string>
 	<key>Dark</key>
 	<string>ダーク</string>
 	<key>Default</key>
@@ -100,6 +106,8 @@
 	<string>サイズ</string>
 	<key>Status</key>
 	<string>状態</string>
+	<key>System Blur</key>
+	<string>システムのぼかし</string>
 	<key>Tap to Cancel</key>
 	<string>タップでキャンセル</string>
 	<key>Teal</key>

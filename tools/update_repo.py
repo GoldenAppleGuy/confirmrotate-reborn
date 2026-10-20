@@ -94,10 +94,13 @@ def main():
         release += [f' {digest(content).hexdigest()} {len(content)} {name}' for name, content in files.items()]
     open(os.path.join(repo, 'Release'), 'w').write('\n'.join(release) + '\n')
 
-    # Sileo package page, with the newest version filled in
+    # Sileo package page for this project's package only (the repo also holds other tweaks, whose pages
+    # come from their own projects), with the newest version filled in
     template = open(os.path.join(HERE, 'depiction.json')).read()
     os.makedirs(os.path.join(repo, 'depictions'), exist_ok=True)
+    own = next(line.split(':', 1)[1].strip() for line in open(os.path.join(PROJECT, 'control')) if line.startswith('Package:'))
     for package, fields in latest.items():
+        if package != own: continue
         page = template.replace('%VERSION%', fields['Version'])
         json.loads(page)  # must stay valid JSON
         open(os.path.join(repo, 'depictions', package + '.json'), 'w').write(page)

@@ -18,6 +18,8 @@
 	<string>Automatyczny obrót obraca ekran po opóźnieniu, gdy wokół przycisku zapełnia się pierścień, zamiast „Ukryj po”. Z opcją „Stuknij, aby anulować” stuknięcie pozostawia ekran bez zmian. Przytrzymaj przycisk, aby obrócić i dodać aplikację do czarnej listy; przesuń go, aby go zamknąć.</string>
 	<key>Automatic</key>
 	<string>Automatycznie</string>
+	<key>Background</key>
+	<string>Tło</string>
 	<key>Behavior</key>
 	<string>Działanie</string>
 	<key>Blacklisted Apps</key>
@@ -28,6 +30,10 @@
 	<string>Anuluj</string>
 	<key>Circle</key>
 	<string>Koło</string>
+	<key>Custom</key>
+	<string>Własny</string>
+	<key>Custom…</key>
+	<string>Własny…</string>
 	<key>Dark</key>
 	<string>Ciemny</string>
 	<key>Default</key>
@@ -100,6 +106,8 @@
 	<string>Rozmiar</string>
 	<key>Status</key>
 	<string>Stan</string>
+	<key>System Blur</key>
+	<string>Rozmycie systemowe</string>
 	<key>Tap to Cancel</key>
 	<string>Stuknij, aby anulować</string>
 	<key>Teal</key>

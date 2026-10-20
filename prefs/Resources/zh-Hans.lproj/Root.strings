@@ -18,6 +18,8 @@
 	<string>自动旋转会在按钮周围的圆环填满后旋转，代替“隐藏时间”。开启“轻点取消”后，轻点按钮会保持屏幕不变。长按按钮可旋转并将 App 加入黑名单；轻扫可将其关闭。</string>
 	<key>Automatic</key>
 	<string>自动</string>
+	<key>Background</key>
+	<string>背景</string>
 	<key>Behavior</key>
 	<string>行为</string>
 	<key>Blacklisted Apps</key>
@@ -28,6 +30,10 @@
 	<string>取消</string>
 	<key>Circle</key>
 	<string>圆形</string>
+	<key>Custom</key>
+	<string>自定</string>
+	<key>Custom…</key>
+	<string>自定…</string>
 	<key>Dark</key>
 	<string>深色</string>
 	<key>Default</key>
@@ -100,6 +106,8 @@
 	<string>大小</string>
 	<key>Status</key>
 	<string>状态</string>
+	<key>System Blur</key>
+	<string>系统模糊</string>
 	<key>Tap to Cancel</key>
 	<string>轻点取消</string>
 	<key>Teal</key>

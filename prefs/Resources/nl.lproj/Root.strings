@@ -18,6 +18,8 @@
 	<string>‘Automatisch draaien’ draait na een vertraging terwijl een ring zich rond de knop vult, in plaats van ‘Verbergen na’. Met ‘Tik om te annuleren’ blijft het scherm bij een tik zoals het is. Houd de knop ingedrukt om te draaien en de app op de blacklist te zetten; veeg hem weg om hem te sluiten.</string>
 	<key>Automatic</key>
 	<string>Automatisch</string>
+	<key>Background</key>
+	<string>Achtergrond</string>
 	<key>Behavior</key>
 	<string>Gedrag</string>
 	<key>Blacklisted Apps</key>
@@ -28,6 +30,10 @@
 	<string>Annuleer</string>
 	<key>Circle</key>
 	<string>Cirkel</string>
+	<key>Custom</key>
+	<string>Aangepast</string>
+	<key>Custom…</key>
+	<string>Aangepast…</string>
 	<key>Dark</key>
 	<string>Donker</string>
 	<key>Default</key>
@@ -100,6 +106,8 @@
 	<string>Grootte</string>
 	<key>Status</key>
 	<string>Status</string>
+	<key>System Blur</key>
+	<string>Systeemvervaging</string>
 	<key>Tap to Cancel</key>
 	<string>Tik om te annuleren</string>
 	<key>Teal</key>

@@ -18,6 +18,8 @@
 	<string>La rotazione automatica ruota dopo un ritardo mentre un anello si riempie attorno al pulsante, al posto di «Nascondi dopo». Con «Tocca per annullare», un tocco lascia lo schermo com’è. Tieni premuto il pulsante per ruotare e aggiungere l’app alla blacklist; scorrilo per chiuderlo.</string>
 	<key>Automatic</key>
 	<string>Automatico</string>
+	<key>Background</key>
+	<string>Sfondo</string>
 	<key>Behavior</key>
 	<string>Comportamento</string>
 	<key>Blacklisted Apps</key>
@@ -28,6 +30,10 @@
 	<string>Annulla</string>
 	<key>Circle</key>
 	<string>Cerchio</string>
+	<key>Custom</key>
+	<string>Personalizzato</string>
+	<key>Custom…</key>
+	<string>Personalizzato…</string>
 	<key>Dark</key>
 	<string>Scuro</string>
 	<key>Default</key>
@@ -100,6 +106,8 @@
 	<string>Dimensione</string>
 	<key>Status</key>
 	<string>Stato</string>
+	<key>System Blur</key>
+	<string>Sfocatura di sistema</string>
 	<key>Tap to Cancel</key>
 	<string>Tocca per annullare</string>
 	<key>Teal</key>

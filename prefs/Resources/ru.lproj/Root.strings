@@ -18,6 +18,8 @@
 	<string>Автоповорот поворачивает экран после задержки, пока вокруг кнопки заполняется кольцо, вместо «Скрывать через». С «Нажатие отменяет» нажатие оставляет экран как есть. Удерживайте кнопку, чтобы повернуть экран и добавить приложение в чёрный список; смахните её, чтобы скрыть.</string>
 	<key>Automatic</key>
 	<string>Автоматически</string>
+	<key>Background</key>
+	<string>Фон</string>
 	<key>Behavior</key>
 	<string>Поведение</string>
 	<key>Blacklisted Apps</key>
@@ -28,6 +30,10 @@
 	<string>Отмена</string>
 	<key>Circle</key>
 	<string>Круг</string>
+	<key>Custom</key>
+	<string>Своё</string>
+	<key>Custom…</key>
+	<string>Своё…</string>
 	<key>Dark</key>
 	<string>Тёмное</string>
 	<key>Default</key>
@@ -100,6 +106,8 @@
 	<string>Размер</string>
 	<key>Status</key>
 	<string>Состояние</string>
+	<key>System Blur</key>
+	<string>Системное размытие</string>
 	<key>Tap to Cancel</key>
 	<string>Нажатие отменяет</string>
 	<key>Teal</key>

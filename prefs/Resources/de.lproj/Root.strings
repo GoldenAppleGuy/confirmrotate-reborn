@@ -18,6 +18,8 @@
 	<string>„Automatisch drehen“ dreht nach einer Verzögerung, während sich ein Ring um die Taste füllt, anstelle von „Ausblenden nach“. Mit „Tippen zum Abbrechen“ bleibt der Bildschirm bei einem Tippen, wie er ist. Lange auf die Taste drücken, um zu drehen und die App auf die Blacklist zu setzen; wischen, um sie auszublenden.</string>
 	<key>Automatic</key>
 	<string>Automatisch</string>
+	<key>Background</key>
+	<string>Hintergrund</string>
 	<key>Behavior</key>
 	<string>Verhalten</string>
 	<key>Blacklisted Apps</key>
@@ -28,6 +30,10 @@
 	<string>Abbrechen</string>
 	<key>Circle</key>
 	<string>Kreis</string>
+	<key>Custom</key>
+	<string>Eigene</string>
+	<key>Custom…</key>
+	<string>Eigene …</string>
 	<key>Dark</key>
 	<string>Dunkel</string>
 	<key>Default</key>
@@ -100,6 +106,8 @@
 	<string>Größe</string>
 	<key>Status</key>
 	<string>Status</string>
+	<key>System Blur</key>
+	<string>Systemunschärfe</string>
 	<key>Tap to Cancel</key>
 	<string>Tippen zum Abbrechen</string>
 	<key>Teal</key>

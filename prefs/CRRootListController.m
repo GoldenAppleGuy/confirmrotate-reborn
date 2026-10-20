@@ -8,6 +8,7 @@
 #import <objc/runtime.h>
 #import <objc/message.h>
 #import <sys/sysctl.h>
+#import "../CRButtonLook.h"
 
 #ifndef CR_VERSION
 #define CR_VERSION "?"
@@ -19,9 +20,22 @@
 #define CR_ROTATION_TEST_NOTIFICATION CFSTR("com.goldenappleguy.confirmrotatereborn/rotationtest")
 #define CR_SURVEY_FILE @"/var/mobile/Documents/ConfirmRotateReborn/runtime.txt"
 
-@interface CRRootListController : PSListController
+@interface CRRootListController : PSListController <UIColorPickerViewControllerDelegate>
 - (void)refreshCounts;
 @end
+
+// Settings read and written directly in the shared store (the color rows and the preview aren't plain
+// specifier values); a write tells the tweak, as the other rows do
+static id CRPref(NSString *key) {
+    CFPreferencesAppSynchronize(CR_DOMAIN);
+    return CFBridgingRelease(CFPreferencesCopyAppValue((__bridge CFStringRef)key, CR_DOMAIN));
+}
+
+static void CRSetPrefs(NSDictionary *values) {
+    for (NSString *key in values) CFPreferencesSetAppValue((__bridge CFStringRef)key, (__bridge CFPropertyListRef)values[key], CR_DOMAIN);
+    CFPreferencesAppSynchronize(CR_DOMAIN);
+    CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), CFSTR("com.goldenappleguy.confirmrotatereborn/changed"), NULL, NULL, YES);
+}
 
 // Text set in code, translated from the same table (Root.strings) that translates Root.plist
 static NSString *CRLocalized(NSString *key) {
@@ -69,6 +83,7 @@ static NSDictionary *CRStatus(void) {
 @implementation CRRootListController {
     NSArray<PSSpecifier *> *_autoRotateOptions; // shown while Auto-Rotate is on ("dependsOn")
     NSArray<PSSpecifier *> *_autoRotateHides;   // shown while it is off ("hiddenBy")
+    NSString *_pickerKey;                        // color row the color picker is open for
 }
 
 // AltList's multi-selection list, shown as a checklist: tapping an app ticks it, and the ticked apps sit
@@ -250,10 +265,68 @@ static void CRRegisterSelectedFirstListController(void) {
 // The app list counts are refreshed when coming back from a list, when the settings app comes back to
 // the front, and when the tweak changes a setting itself (long press to blacklist). Reloading the
 // specifiers does not redraw these cells, so they are refreshed directly.
+// Rows showing settings that change elsewhere (app counts, colors, the preview) redraw on any change
 - (void)refreshCounts {
     for (UITableViewCell *cell in self.table.visibleCells) {
-        if ([cell isKindOfClass:NSClassFromString(@"CRCountLinkCell")]) [(PSTableCell *)cell refreshCellContentsWithSpecifier:((PSTableCell *)cell).specifier];
+        for (NSString *name in @[@"CRCountLinkCell", @"CRColorCell", @"CRPreviewCell"]) {
+            if ([cell isKindOfClass:NSClassFromString(name)]) [(PSTableCell *)cell refreshCellContentsWithSpecifier:((PSTableCell *)cell).specifier];
+        }
     }
+}
+
+#pragma mark - Colors
+
+// Icon Color and Background rows: a menu of choices, "Custom…" opening the system color picker
+- (void)chooseColor:(PSSpecifier *)specifier {
+    NSString *key = [specifier propertyForKey:@"key"];
+    BOOL background = [key isEqualToString:@"Background"];
+    UIAlertController *menu = [UIAlertController alertControllerWithTitle:CRLocalized(specifier.name) message:nil preferredStyle:UIAlertControllerStyleActionSheet];
+    NSMutableArray<NSString *> *choices = [NSMutableArray arrayWithObject:background ? @"Blur" : @"Default"];
+    if (!background) [choices addObjectsFromArray:CRPresetColorNames()];
+    __weak typeof(self) weakSelf = self;
+    for (NSString *choice in choices) {
+        [menu addAction:[UIAlertAction actionWithTitle:CRLocalized([choice isEqualToString:@"Blur"] ? @"System Blur" : choice) style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+            CRSetPrefs(@{key: choice});
+            [weakSelf refreshCounts];
+        }]];
+    }
+    [menu addAction:[UIAlertAction actionWithTitle:CRLocalized(@"Custom…") style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+        [weakSelf showColorPickerForKey:key title:specifier.name];
+    }]];
+    [menu addAction:[UIAlertAction actionWithTitle:CRLocalized(@"Cancel") style:UIAlertActionStyleCancel handler:nil]];
+    UITableViewCell *cell = [self cachedCellForSpecifier:specifier];
+    menu.popoverPresentationController.sourceView = cell ?: self.view;
+    menu.popoverPresentationController.sourceRect = cell ? cell.bounds : CGRectMake(CGRectGetMidX(self.view.bounds), CGRectGetMidY(self.view.bounds), 1, 1);
+    [self presentViewController:menu animated:YES completion:nil];
+}
+
+- (void)showColorPickerForKey:(NSString *)key title:(NSString *)title {
+    BOOL background = [key isEqualToString:@"Background"];
+    NSString *hexKey = background ? @"BackgroundColor" : @"IconCustomColor";
+    UIColorPickerViewController *picker = [UIColorPickerViewController new];
+    picker.title = CRLocalized(title);
+    picker.supportsAlpha = background; // a see-through background; the icon stays solid
+    UIColor *current = CRColorFromHex(CRPref(hexKey));
+    if (!current) current = background ? [[UIColor systemBackgroundColor] colorWithAlphaComponent:0.8] : [UIColor systemBlueColor];
+    picker.selectedColor = current;
+    picker.delegate = self;
+    _pickerKey = key;
+    [self presentViewController:picker animated:YES completion:nil];
+}
+
+// Saved as it changes, so the preview follows the picker
+- (void)colorPickerViewController:(UIColorPickerViewController *)picker didSelectColor:(UIColor *)color continuously:(BOOL)continuously {
+    if (!_pickerKey) return;
+    BOOL background = [_pickerKey isEqualToString:@"Background"];
+    NSString *hex = CRHexFromColor(color, background);
+    if (!hex) return;
+    CRSetPrefs(@{_pickerKey: @"Custom", (background ? @"BackgroundColor" : @"IconCustomColor"): hex});
+    [self refreshCounts];
+}
+
+- (void)colorPickerViewControllerDidFinish:(UIColorPickerViewController *)picker {
+    _pickerKey = nil;
+    [self refreshCounts];
 }
 
 static void CRSettingsChanged(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef info) {
@@ -691,4 +764,110 @@ static Class CRPaddedSliderClass(Class base) {
     _countLabel.frame = CGRectMake(bounds.size.width - self.contentView.layoutMargins.right - width, 0, width, bounds.size.height);
 }
 
+@end
+
+// Icon Color / Background row: its title, the current choice by name and a swatch of it
+@interface CRColorCell : PSTableCell
+@end
+
+@implementation CRColorCell {
+    UILabel *_valueLabel;
+    UIView *_swatch;
+}
+
+- (void)refreshCellContentsWithSpecifier:(PSSpecifier *)specifier {
+    [super refreshCellContentsWithSpecifier:specifier];
+    self.textLabel.textColor = [UIColor labelColor]; // a choice, not an action: not tinted like a button
+    if (!_valueLabel) {
+        _valueLabel = [UILabel new];
+        _valueLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleBody];
+        _valueLabel.textColor = [UIColor secondaryLabelColor];
+        _valueLabel.textAlignment = NSTextAlignmentRight;
+        [self.contentView addSubview:_valueLabel];
+        _swatch = [UIView new];
+        _swatch.layer.cornerRadius = 11;
+        _swatch.layer.borderWidth = 1;
+        [self.contentView addSubview:_swatch];
+    }
+    BOOL background = [[specifier propertyForKey:@"key"] isEqualToString:@"Background"];
+    NSString *setting = CRPref(background ? @"Background" : @"IconColor") ?: (background ? @"Blur" : @"Default");
+    NSString *hex = CRPref(background ? @"BackgroundColor" : @"IconCustomColor");
+    UIColor *color = background ? CRBackgroundColorFor(setting, hex) : CRIconColorFor(setting, hex);
+    if ([setting isEqualToString:@"Custom"]) _valueLabel.text = CRLocalized(@"Custom");
+    else if (background) _valueLabel.text = CRLocalized(@"System Blur");
+    else _valueLabel.text = CRLocalized(CRPresetColor(setting) ? setting : @"Default");
+    _swatch.backgroundColor = color ?: [UIColor systemFillColor];
+    _swatch.layer.borderColor = [UIColor separatorColor].CGColor;
+    [self setNeedsLayout];
+}
+
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    CGRect bounds = self.contentView.bounds;
+    CGFloat right = bounds.size.width - self.contentView.layoutMargins.right, size = 22;
+    _swatch.frame = CGRectMake(right - size, round((bounds.size.height - size) / 2), size, size);
+    CGFloat width = ceil([_valueLabel sizeThatFits:bounds.size].width);
+    _valueLabel.frame = CGRectMake(right - size - 8 - width, 0, width, bounds.size.height);
+}
+
+- (void)traitCollectionDidChange:(UITraitCollection *)previous {
+    [super traitCollectionDidChange:previous];
+    _swatch.layer.borderColor = [UIColor separatorColor].CGColor;
+}
+@end
+
+// Preview at the top of Appearance: the button as the current settings draw it, on a colorful backdrop
+// so the blur and the opacity show
+@interface CRPreviewCell : PSTableCell
+@end
+
+@implementation CRPreviewCell {
+    CAGradientLayer *_backdrop;
+    UIView *_button;
+}
+
+- (void)refreshCellContentsWithSpecifier:(PSSpecifier *)specifier {
+    [super refreshCellContentsWithSpecifier:specifier];
+    self.selectionStyle = UITableViewCellSelectionStyleNone;
+    self.textLabel.text = nil;
+    if (!_backdrop) {
+        _backdrop = [CAGradientLayer layer];
+        _backdrop.colors = @[(id)[UIColor systemTealColor].CGColor, (id)[UIColor systemIndigoColor].CGColor, (id)[UIColor systemPinkColor].CGColor];
+        _backdrop.startPoint = CGPointMake(0, 0);
+        _backdrop.endPoint = CGPointMake(1, 1);
+        [self.contentView.layer insertSublayer:_backdrop atIndex:0];
+    }
+    [_button removeFromSuperview];
+
+    double (^number)(NSString *, double, double, double) = ^double(NSString *key, double fallback, double min, double max) {
+        id value = CRPref(key);
+        return [value respondsToSelector:@selector(doubleValue)] ? MAX(min, MIN(max, [value doubleValue])) : fallback;
+    };
+    CGFloat size = round(number(@"ButtonSize", 56, 44, 96));
+    BOOL rounded = number(@"ButtonShape", 0, 0, 1) == 1;
+    NSInteger theme = (NSInteger)round(number(@"Theme", 0, 0, 2));
+    BOOL cancels = number(@"AutoRotate", 0, 0, 1) != 0 && number(@"TapToCancel", 1, 0, 1) != 0;
+    NSBundle *bundle = [NSBundle bundleForClass:[CRPreviewCell class]];
+    NSString *caption = [bundle localizedStringForKey:(cancels ? @"Cancel?" : @"Rotate?") value:nil table:@"Tweak"];
+
+    UIView *button = [UIView new];
+    button.overrideUserInterfaceStyle = theme == 1 ? UIUserInterfaceStyleLight : theme == 2 ? UIUserInterfaceStyleDark : UIUserInterfaceStyleUnspecified;
+    CRBuildButtonLook(button, size, rounded, CRIconColorFor(CRPref(@"IconColor"), CRPref(@"IconCustomColor")),
+                      CRBackgroundColorFor(CRPref(@"Background"), CRPref(@"BackgroundColor")), caption);
+    button.alpha = round(number(@"ButtonOpacity", 100, 20, 100)) / 100.0;
+    button.userInteractionEnabled = NO;
+    button.isAccessibilityElement = NO;
+    [self.contentView addSubview:button];
+    _button = button;
+    [self setNeedsLayout];
+}
+
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    [CATransaction begin];
+    [CATransaction setDisableActions:YES];
+    _backdrop.frame = self.contentView.bounds;
+    [CATransaction commit];
+    _button.center = CGPointMake(CGRectGetMidX(self.contentView.bounds), CGRectGetMidY(self.contentView.bounds));
+}
 @end

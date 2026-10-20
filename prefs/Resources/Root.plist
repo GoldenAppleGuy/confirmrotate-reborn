@@ -284,6 +284,16 @@
 			<string>Appearance</string>
 		</dict>
 		<dict>
+			<key>cell</key>
+			<string>PSStaticTextCell</string>
+			<key>cellClass</key>
+			<string>CRPreviewCell</string>
+			<key>height</key>
+			<integer>150</integer>
+			<key>id</key>
+			<string>Preview</string>
+		</dict>
+		<dict>
 			<key>PostNotification</key>
 			<string>com.goldenappleguy.confirmrotatereborn/changed</string>
 			<key>cell</key>
@@ -330,44 +340,28 @@
 			</array>
 		</dict>
 		<dict>
-			<key>PostNotification</key>
-			<string>com.goldenappleguy.confirmrotatereborn/changed</string>
+			<key>action</key>
+			<string>chooseColor:</string>
 			<key>cell</key>
-			<string>PSLinkListCell</string>
-			<key>default</key>
-			<string>Default</string>
-			<key>defaults</key>
-			<string>com.goldenappleguy.confirmrotatereborn</string>
-			<key>detail</key>
-			<string>PSListItemsController</string>
+			<string>PSButtonCell</string>
+			<key>cellClass</key>
+			<string>CRColorCell</string>
 			<key>key</key>
 			<string>IconColor</string>
 			<key>label</key>
 			<string>Icon Color</string>
-			<key>validTitles</key>
-			<array>
-				<string>Default</string>
-				<string>Blue</string>
-				<string>Green</string>
-				<string>Orange</string>
-				<string>Pink</string>
-				<string>Purple</string>
-				<string>Red</string>
-				<string>Teal</string>
-				<string>Yellow</string>
-			</array>
-			<key>validValues</key>
-			<array>
-				<string>Default</string>
-				<string>Blue</string>
-				<string>Green</string>
-				<string>Orange</string>
-				<string>Pink</string>
-				<string>Purple</string>
-				<string>Red</string>
-				<string>Teal</string>
-				<string>Yellow</string>
-			</array>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>chooseColor:</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>cellClass</key>
+			<string>CRColorCell</string>
+			<key>key</key>
+			<string>Background</string>
+			<key>label</key>
+			<string>Background</string>
 		</dict>
 		<dict>
 			<key>PostNotification</key>
