@@ -26,7 +26,7 @@
         {
           "class": "DepictionTableTextView",
           "title": "Compatibility",
-          "text": "iOS 15 – 18 (rootless, roothide and rootful)"
+          "text": "iOS 15 – 26 (rootless, roothide and rootful)"
         },
         {
           "class": "DepictionTableTextView",
