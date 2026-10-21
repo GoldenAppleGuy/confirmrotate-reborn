@@ -46,6 +46,15 @@
       "views": [
         {
           "class": "DepictionSubheaderView",
+          "title": "1.1.1",
+          "useBoldText": true
+        },
+        {
+          "class": "DepictionMarkdownView",
+          "markdown": "- iOS 26 support."
+        },
+        {
+          "class": "DepictionSubheaderView",
           "title": "1.1.0",
           "useBoldText": true
         },
